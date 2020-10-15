@@ -1,0 +1,1 @@
+import ExampleModule from "../shared/ExampleModule";
