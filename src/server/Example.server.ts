@@ -1,3 +1,5 @@
 import ExampleModule from "../shared/ExampleModule";
+print("Nerwe Server")
 
-const ex2 = new ExampleModule("testserver");
+
+
