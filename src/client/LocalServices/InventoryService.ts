@@ -1,7 +1,7 @@
 import PlayerInventory from "../LocalModules/Inventory/PlayerInventory";
 import OtherInventory from "../LocalModules/Inventory/OtherInventory";
 import {FileNames} from "../../shared/Modules/Enums/FileNames";
-import {ItemIds} from "../../shared/Modules/Enums/ItemIds";
+import {ItemEnum} from "../../shared/Modules/Enums/ItemEnum";
 import Item from "../LocalModules/Inventory/Item";
 
 
@@ -13,24 +13,15 @@ export default class InventoryService {
     constructor() {
         this.playerInventory = new PlayerInventory();
         this.otherInventory = new OtherInventory();
-        this.onArrowMoveItem(
-            new Item(this.playerInventory.item, ItemIds.CLEAVER_KNIFE, "Cleaver", "Weapon")
-        );
     }
 
     public toggleInventory(): void {
         this.playerInventory.playerInventoryScreen.Enabled = !this.playerInventory.playerInventoryScreen.Enabled;
     }
 
-    //TODO Create Item module
-    public createItem(itemId: ItemIds, name: string) {
+    public createItem(itemEnum: ItemEnum) {
 
-        const newItem = new Item(
-            this.playerInventory.item,
-            itemId,
-            name,
-            "Weapon"
-        );
+        const newItem = new Item(this.playerInventory.baseItem, itemEnum);
 
         newItem.itemArrowButton.Rotation = 0;
 
@@ -39,16 +30,11 @@ export default class InventoryService {
 
     public addAnyItem() {
 
-        const newItem = new Item(
-            this.playerInventory.item,
-            ItemIds.BLOCK_FRYING_PAN,
-            "Frying Pan",
-            "Weapon"
-        );
+        const newItem = new Item(this.playerInventory.baseItem, ItemEnum.BLOCK_FRYING_PAN);
 
         newItem.itemArrowButton.Rotation = 0;
 
-        this.createItem(ItemIds.HUNTING_KNIFE, "Hunting Knife");
+        this.createItem(ItemEnum.HUNTING_KNIFE);
 
         this.onArrowMoveItem(newItem);
     }

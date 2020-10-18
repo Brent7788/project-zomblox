@@ -6,8 +6,7 @@ export default class PlayerInventory {
     public localPlayerGui: PlayerGui;
     public playerInventoryScreen: ScreenGui;
     public playerInventoryFrame: Frame;
-    public item: Frame;
-    public arrowButton: ImageButton;
+    public baseItem: Frame;
 
     constructor() {
         this.localPlayer = Players.LocalPlayer;
@@ -15,7 +14,7 @@ export default class PlayerInventory {
         this.playerInventoryScreen = this.localPlayerGui.WaitForChild(FileNames.INVENTORY_GUI) as ScreenGui;
         this.playerInventoryScreen.Enabled = false;
         this.playerInventoryFrame = this.playerInventoryScreen.WaitForChild(FileNames.PLAYER_INVENTORY) as Frame;
-        this.item = this.playerInventoryFrame.WaitForChild(FileNames.ITEM) as Frame;
-        this.arrowButton = this.item.WaitForChild(FileNames.IMAGE_ARROW) as ImageButton;
+        this.baseItem = this.playerInventoryFrame.WaitForChild(FileNames.ITEM) as Frame;
+        this.baseItem.Visible = false;
     }
 }

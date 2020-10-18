@@ -1,5 +1,5 @@
 import {FileNames} from "../../../shared/Modules/Enums/FileNames";
-import {ItemIds} from "../../../shared/Modules/Enums/ItemIds";
+import {ItemEnum} from "../../../shared/Modules/Enums/ItemEnum";
 
 export default class Item {
     public itemFrame: Frame;
@@ -8,8 +8,9 @@ export default class Item {
     public itemTypeText: TextLabel;
     public itemCategoryText: TextLabel;
 
-    constructor(item: Frame, itemIcon: ItemIds, itemTypeText: string, itemCategoryText: string) {
+    constructor(item: Frame, itemEnum: ItemEnum) {
         this.itemFrame = item.Clone();
+        this.itemFrame.Visible = true;
         this.itemFrame.Parent = item.Parent;
 
         this.itemIcon = this.itemFrame.WaitForChild(FileNames.ITEM_ICON) as ImageButton;
@@ -17,9 +18,10 @@ export default class Item {
         this.itemTypeText = this.itemFrame.WaitForChild(FileNames.TYPE_DECS) as TextLabel;
         this.itemCategoryText = this.itemFrame.WaitForChild(FileNames.CATEGORY_DECS) as TextLabel;
 
-        this.itemIcon.Image = itemIcon;
-        this.itemTypeText.Text = itemTypeText;
-        this.itemCategoryText.Text = itemCategoryText;
+        const itemEnumStrings = Item.formatItemEnum(itemEnum);
+        this.itemIcon.Image = itemEnumStrings[0];
+        this.itemTypeText.Text = itemEnumStrings[1];
+        this.itemCategoryText.Text = itemEnumStrings[2];
     }
 
     public getItemParent(): Frame {
@@ -28,5 +30,10 @@ export default class Item {
 
     public setItemParent(parent: Frame): void {
         this.itemFrame.Parent = parent;
+    }
+
+    //TODO Maybe create class of this to make it more explesite
+    private static formatItemEnum(itemEnum: ItemEnum): string[] {
+        return itemEnum.split(",");
     }
 }
