@@ -1,6 +1,8 @@
-import PlayerInventory from "../LocalModules/PlayerInventory";
-import OtherInventory from "../LocalModules/OtherInventory";
+import PlayerInventory from "../LocalModules/Inventory/PlayerInventory";
+import OtherInventory from "../LocalModules/Inventory/OtherInventory";
 import {FileNames} from "../../shared/Modules/Enums/FileNames";
+import {ItemIds} from "../../shared/Modules/Enums/ItemIds";
+import Item from "../LocalModules/Inventory/Item";
 
 
 export default class InventoryService {
@@ -11,34 +13,55 @@ export default class InventoryService {
     constructor() {
         this.playerInventory = new PlayerInventory();
         this.otherInventory = new OtherInventory();
-        this.onArrowMoveItem(this.playerInventory.item);
+        this.onArrowMoveItem(
+            new Item(this.playerInventory.item, ItemIds.CLEAVER_KNIFE, "Cleaver", "Weapon")
+        );
     }
 
     public toggleInventory(): void {
         this.playerInventory.playerInventoryScreen.Enabled = !this.playerInventory.playerInventoryScreen.Enabled;
     }
 
-    public addAnyItem() {
-        const itemClone = this.playerInventory.item.Clone();
-        itemClone.Parent = this.playerInventory.playerInventoryFrame;
-        const arrowButton = itemClone.WaitForChild(FileNames.IMAGE_ARROW) as ImageButton;
+    //TODO Create Item module
+    public createItem(itemId: ItemIds, name: string) {
 
-        arrowButton.Rotation = 0;
+        const newItem = new Item(
+            this.playerInventory.item,
+            itemId,
+            name,
+            "Weapon"
+        );
 
-        this.onArrowMoveItem(itemClone);
+        newItem.itemArrowButton.Rotation = 0;
+
+        this.onArrowMoveItem(newItem);
     }
 
-    public onArrowMoveItem(item: Frame): void {
+    public addAnyItem() {
 
-        const arrowButton = item.WaitForChild(FileNames.IMAGE_ARROW) as ImageButton;
+        const newItem = new Item(
+            this.playerInventory.item,
+            ItemIds.BLOCK_FRYING_PAN,
+            "Frying Pan",
+            "Weapon"
+        );
 
-        arrowButton.MouseButton1Click.Connect(() => {
-            if (item && item.Parent && item.Parent.Name === FileNames.PLAYER_INVENTORY) {
-                item.Parent = this.otherInventory.otherInventoryScreen;
-                arrowButton.Rotation = 180;
-            } else if((item && item.Parent && item.Parent.Name === FileNames.OTHER_INVENTORY)) {
-                item.Parent = this.playerInventory.playerInventoryFrame;
-                arrowButton.Rotation = 0;
+        newItem.itemArrowButton.Rotation = 0;
+
+        this.createItem(ItemIds.HUNTING_KNIFE, "Hunting Knife");
+
+        this.onArrowMoveItem(newItem);
+    }
+
+    public onArrowMoveItem(item: Item): void {
+
+        item.itemArrowButton.MouseButton1Click.Connect(() => {
+            if (item && item.getItemParent() && item.getItemParent().Name === FileNames.PLAYER_INVENTORY) {
+                item.setItemParent(this.otherInventory.otherInventoryScreen);
+                item.itemArrowButton.Rotation = 180;
+            } else if ((item && item.getItemParent() && item.getItemParent().Name === FileNames.OTHER_INVENTORY)) {
+                item.setItemParent(this.playerInventory.playerInventoryFrame);
+                item.itemArrowButton.Rotation = 0;
             } else {
                 print("In addAnyItem, the itemClone is null!");
             }

@@ -1,5 +1,5 @@
 import {Players} from "@rbxts/services";
-import {FileNames} from "../../shared/Modules/Enums/FileNames";
+import {FileNames} from "../../../shared/Modules/Enums/FileNames";
 
 export default class PlayerInventory {
     public localPlayer: Player;

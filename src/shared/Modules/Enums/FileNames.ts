@@ -12,7 +12,10 @@ export enum FileNames {
     PLAYER_INVENTORY = "PlayerInventory",
     OTHER_INVENTORY = "OtherInventory",
     ITEM = "Item",
+    ITEM_ICON = "ItemIcon",
     IMAGE_ARROW = "ImageArrow",
+    CATEGORY_DECS = "CategoryDecs",
+    TYPE_DECS = "TypeDecs",
 
     //PlayerGui - Client
     PLAYER_GUI = "PlayerGui",
