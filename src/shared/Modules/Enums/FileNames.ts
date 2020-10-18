@@ -9,6 +9,10 @@ export enum FileNames {
 
     //StarterGui - Client
     INVENTORY_GUI = "InventoryGui",
+    PLAYER_INVENTORY = "PlayerInventory",
+    OTHER_INVENTORY = "OtherInventory",
+    ITEM = "Item",
+    IMAGE_ARROW = "ImageArrow",
 
     //PlayerGui - Client
     PLAYER_GUI = "PlayerGui",

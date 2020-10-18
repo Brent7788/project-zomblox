@@ -1,13 +1,14 @@
-import PlayerInputs from "./PlayerInputs";
+import ProjectZombloxPlayerInputService from "./LocalServices/ProjectZombloxPlayerInputService";
 
 export default class LocalStartUp {
-    private readonly playerInputs: PlayerInputs;
+    private readonly projectZombloxPlayerInputService: ProjectZombloxPlayerInputService;
 
     constructor() {
-        this.playerInputs = new PlayerInputs();
+        this.projectZombloxPlayerInputService = new ProjectZombloxPlayerInputService();
     }
 
-    public setUp(): void {
-        this.playerInputs.began();
+    //TODO Maybe create better set up name
+    public start(): void {
+        this.projectZombloxPlayerInputService.began();
     }
 }
