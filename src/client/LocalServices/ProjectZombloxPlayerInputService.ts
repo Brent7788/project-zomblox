@@ -17,23 +17,22 @@ export default class ProjectZombloxPlayerInputService {
 
     public began(): void {
 
-        //TODO us this, this will prevent the E from running when typing in chat.
-        ContextActionService.BindAction(this.OPEN_INVENTORY,
+        //TODO us to overide key press
+        /*ContextActionService.BindAction(this.OPEN_INVENTORY,
             (actionName, state, inputObject) => {
-                print(actionName);
                 if (actionName === this.OPEN_INVENTORY && state === Enum.UserInputState.Begin) {
-                    print("IT workssssss");
-                    this.inventoryService.toggleInventory();
+                    ///this.inventoryService.toggleInventory();
                 }
-            }, true, Enum.KeyCode.E)
+            }, false, Enum.KeyCode.E);*/
 
-        UserInputService.InputBegan.Connect((input: InputObject) => {
+        UserInputService.InputBegan.Connect((input: InputObject, gameProcessedEvent) => {
 
-            if (input.UserInputType === Enum.UserInputType.Keyboard) {
+            if (!gameProcessedEvent && input.UserInputType === Enum.UserInputType.Keyboard) {
 
                 switch (input.KeyCode) {
                     //TODO Maybe Remove this
                     case Enum.KeyCode.E:
+                        this.inventoryService.toggleInventory();
                         break;
                     case Enum.KeyCode.Space:
                         remote.FireServer("Exampel test");
