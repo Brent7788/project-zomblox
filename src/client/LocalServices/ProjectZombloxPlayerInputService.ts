@@ -32,6 +32,7 @@ export default class ProjectZombloxPlayerInputService {
                 switch (input.KeyCode) {
                     //TODO Maybe Remove this
                     case Enum.KeyCode.E:
+                        this.inventoryService.destroyItemOutOtherInventoryIfEnable();
                         this.inventoryService.toggleInventory();
                         break;
                     case Enum.KeyCode.Space:
@@ -39,6 +40,23 @@ export default class ProjectZombloxPlayerInputService {
                         break;
                     case Enum.KeyCode.Q:
                         this.inventoryService.addAnyItem();
+                        break;
+                }
+            }
+        });
+
+        UserInputService.InputEnded.Connect((input: InputObject, gameProcessedEvent) => {
+
+            if (!gameProcessedEvent && input.UserInputType === Enum.UserInputType.Keyboard) {
+
+                switch (input.KeyCode) {
+                    //TODO Maybe Remove this
+                    case Enum.KeyCode.E:
+                        print("Close");
+                        this.inventoryService.onInventoryOpen();
+                        break;
+                    case Enum.KeyCode.Space:
+                        print('Test scpae');
                         break;
                 }
             }

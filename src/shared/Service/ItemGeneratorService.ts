@@ -1,8 +1,8 @@
 import ItemValue from "../Modules/ItemValue";
 import {ItemEnum} from "../Modules/Enums/ItemEnum";
-import {Workspace} from "@rbxts/services";
+import {HttpService, Workspace} from "@rbxts/services";
 
-export default class ItemGenerator {
+export default class ItemGeneratorService {
 
     private testContainers: Array<Instance>;
     private testContainerStringValues: StringValue[] = [];
@@ -25,7 +25,8 @@ export default class ItemGenerator {
         });
     }
 
-    public toItemValueArray(itemValuesAsString: string): ItemValue[] {
+    //TODO This should not be here
+    public static toItemValueArray(itemValuesAsString: string): ItemValue[] {
         const splitItemValuesAsString = itemValuesAsString.split("#");
         const items: ItemValue[] = [];
         splitItemValuesAsString.forEach((itemValString) => {

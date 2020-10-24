@@ -1,11 +1,11 @@
-import ItemGenerator from "../shared/Service/ItemGenerator";
+import ItemGeneratorService from "../shared/Service/ItemGeneratorService";
 
 
 export default class ServerStartUp {
-    private readonly itemGenerator: ItemGenerator;
+    private readonly itemGenerator: ItemGeneratorService;
 
     constructor() {
-        this.itemGenerator = new ItemGenerator();
+        this.itemGenerator = new ItemGeneratorService();
     }
 
     public start(): void {
