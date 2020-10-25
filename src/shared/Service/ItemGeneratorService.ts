@@ -20,8 +20,14 @@ export default class ItemGeneratorService {
     }
 
     public initTestItems(): void {
+        let switchh = true;
         this.testContainerStringValues.forEach(stringValue => {
-           stringValue.Value = this.generateTestItems();
+           if (switchh) {
+               stringValue.Value = this.generateTestItems1();
+           } else {
+               stringValue.Value = this.generateTestItems2();
+           }
+            switchh = !switchh;
         });
     }
 
@@ -38,9 +44,17 @@ export default class ItemGeneratorService {
         return items;
     }
 
-    public generateTestItems(): string {
+    public generateTestItems1(): string {
         const item = new ItemValue(1, ItemEnum.CLEAVER_KNIFE);
         const item2 = new ItemValue(3, ItemEnum.HUNTING_KNIFE);
+        const items = [item, item2];
+
+        return this.itemValueArrayToString(items);
+    }
+
+    public generateTestItems2(): string {
+        const item = new ItemValue(1, ItemEnum.KNIFE);
+        const item2 = new ItemValue(3, ItemEnum.BLOCK_FRYING_PAN);
         const items = [item, item2];
 
         return this.itemValueArrayToString(items);

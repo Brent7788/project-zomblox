@@ -1,12 +1,14 @@
 import {FileNames} from "../../../shared/Modules/Enums/FileNames";
 import {ContainerEnum} from "../../../shared/Modules/Enums/ContainerEnum";
+import InstanceGenerator from "../../../shared/Utils/InstanceGenerator";
 
 export default class Container {
-    private containerFrame: Frame;
-    private containerIcon: ImageLabel;
-    private containerButton: TextButton;
+    public containerFrame: Frame;
+    public containerIcon: ImageLabel;
+    public containerButton: TextButton;
+    public containerId: StringValue;
 
-    constructor(baseContainer: Frame, containerIcon: ContainerEnum) {
+    constructor(baseContainer: Frame, containerIcon: ContainerEnum, guid: string) {
         this.containerFrame = baseContainer.Clone();
         this.containerFrame.Visible = true;
         this.containerFrame.Parent = baseContainer.Parent;
@@ -16,25 +18,7 @@ export default class Container {
         this.containerIcon.Image = containerIcon;
 
         this.containerButton = this.containerFrame.FindFirstChild(FileNames.CONTAINER_BUTTON) as TextButton;
-    }
 
-    public static destroyContainers(containers: Instance[], destroy?: (index: number) => void): void {
-        if (containers !== undefined && containers.size() > 1) {
-            for (let i = 0; i < containers.size(); i++) {
-                switch (containers[i].Name) {
-                    case "OtherItemList":
-                        break;
-                    case FileNames.BASE_ITEM:
-                        break;
-                    case FileNames.ITEM:
-                        if (destroy === undefined) {
-                            containers[i].Destroy();
-                        } else {
-                            destroy(i);
-                        }
-                        break;
-                }
-            }
-        }
+        this.containerId = InstanceGenerator.generateId(this.containerFrame, FileNames.CONTAINER_ID, guid);
     }
 }

@@ -39,7 +39,6 @@ export default class ProjectZombloxPlayerInputService {
                         remote.FireServer("Exampel test");
                         break;
                     case Enum.KeyCode.Q:
-                        this.inventoryService.addAnyItem();
                         break;
                 }
             }
