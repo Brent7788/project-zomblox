@@ -1,10 +1,9 @@
 import PlayerInventory from "../LocalModules/Inventory/PlayerInventory";
 import OtherInventory from "../LocalModules/Inventory/OtherInventory";
 import {FileNames} from "../../shared/Modules/Enums/FileNames";
-import {ItemEnum} from "../../shared/Modules/Enums/ItemEnum";
 import Item from "../LocalModules/Inventory/Item";
 import RegionService from "../../shared/Service/RegionService";
-import {Players, Workspace} from "@rbxts/services";
+import {Players, Workspace, ReplicatedStorage} from "@rbxts/services";
 import ItemGeneratorService from "../../shared/Service/ItemGeneratorService";
 import InstanceGenerator from "../../shared/Utils/InstanceGenerator";
 import OtherContainers from "../LocalModules/Inventory/OtherContainers";
@@ -18,12 +17,15 @@ export default class InventoryService {
     private otherInventory: OtherInventory;
     private otherContainers: OtherContainers;
     private readonly regionService: RegionService;
+    private testtt: RemoteEvent;
 
     constructor() {
         this.playerInventory = new PlayerInventory(Players.LocalPlayer);
         this.otherInventory = new OtherInventory(Players.LocalPlayer);
         this.otherContainers = new OtherContainers(Players.LocalPlayer);
         this.regionService = new RegionService();
+        //TODO Change the name PICK_UP_EXAMPLE
+        this.testtt = ReplicatedStorage.WaitForChild(FileNames.PICK_UP_EXAMPLE) as RemoteEvent;
     }
 
     public toggleInventory(): void {
@@ -123,9 +125,8 @@ export default class InventoryService {
                     itemValues.forEach(itemValue => {
                         const newItem = new Item(
                             this.otherInventory.baseItem,
-                            itemValue.itemUIValues,
                             containerGUID,
-                            itemValue.itemCount);
+                            itemValue);
                         this.onArrowMoveItem(newItem);
                     });
 
@@ -142,9 +143,8 @@ export default class InventoryService {
                     itemValues.forEach(itemValue => {
                         const newItem = new Item(
                             this.otherInventory.baseItem,
-                            itemValue.itemUIValues,
                             containerGUID,
-                            itemValue.itemCount);
+                            itemValue);
                         this.onArrowMoveItem(newItem);
                     });
                 });
@@ -205,9 +205,8 @@ export default class InventoryService {
                         itemValues.forEach(itemValue => {
                             const newItem = new Item(
                                 this.otherInventory.baseItem,
-                                itemValue.itemUIValues,
                                 id.Value,
-                                itemValue.itemCount);
+                                itemValue);
                             this.onArrowMoveItem(newItem);
                         });
                     }
@@ -241,6 +240,9 @@ export default class InventoryService {
         const con = Workspace.WaitForChild("TestParts")
             .FindFirstChild("TestContainers")?.GetChildren();
 
+        //TODO Implement connection to server here
+        this.testtt.FireServer()
+
         item.itemArrowButton.MouseButton1Click.Connect(() => {
             if (item && item.getItemParent() && item.getItemParent().Name === FileNames.PLAYER_INVENTORY) {
                 item.setItemParent(this.otherInventory.otherInventoryScreen);
@@ -255,7 +257,7 @@ export default class InventoryService {
                     if (container !== undefined &&
                         containerId !== undefined &&
                         dis <= 10) {
-                        container.Value = container.Value + item.itemValue.Value;
+                        container.Value = container.Value + item.itemValue.toObjectString();
                     }
                 });
             } else if ((item && item.getItemParent() && item.getItemParent().Name === FileNames.OTHER_INVENTORY)) {
@@ -270,7 +272,7 @@ export default class InventoryService {
                     if (container !== undefined &&
                         containerId !== undefined &&
                         containerId.Value === item.containerId.Value) {
-                        container.Value = container.Value.gsub(item.itemValue.Value, "")[0];
+                        container.Value = container.Value.gsub(item.itemValue.toObjectString(), "")[0];
                     }
                 });
             } else {

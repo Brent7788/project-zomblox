@@ -27,6 +27,8 @@ export enum FileNames {
     CATEGORY_DECS = "CategoryDecs",
     TYPE_DECS = "TypeDecs",
     CONTAINER_ID = "ContainerId",
+    ITEM_POP_UP_DESC = "ItemPopUpDesc",
+    ITEM_QUANTITY = "ItemQuantity",
 
     //Workspace -> Containers
     CONTAINER = "Container#",
