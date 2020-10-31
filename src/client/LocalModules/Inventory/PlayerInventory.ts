@@ -28,7 +28,7 @@ export default class PlayerInventory {
                         break;
                     case FileNames.BASE_CONTAINERS:
                         break;
-                    case FileNames.ITEM:
+                    case FileNames.UI_ITEM:
                         if (destroy === undefined) {
                             instances[i].Destroy();
                         } else {

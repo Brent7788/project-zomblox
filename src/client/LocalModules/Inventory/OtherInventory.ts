@@ -21,4 +21,19 @@ export default class OtherInventory {
             print("Please provide item. Item cannot be null!")
         }
     }
+
+    public getItemById(itemId: string): Frame | undefined {
+        const otherInventoryChildren = this.otherInventoryScreen.GetChildren();
+
+        let uiItem: Frame | undefined = undefined;
+        for (let i = 0; i < otherInventoryChildren.size(); i++) {
+            const itemIdStringValue = otherInventoryChildren[i].FindFirstChild(FileNames.ID) as StringValue;
+
+            if (itemIdStringValue !== undefined && itemIdStringValue.Value === itemId) {
+                uiItem = otherInventoryChildren[i] as Frame;
+            }
+        }
+
+        return uiItem;
+    }
 }

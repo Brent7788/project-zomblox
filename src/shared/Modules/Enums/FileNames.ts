@@ -9,7 +9,7 @@ export enum FileNames {
     PART = "Part",
 
     //ReplicatedStorage - Server and Client
-    PICK_UP_EXAMPLE = "PickUpExample",
+    INVENTORY_ITEM_EVENTS = "InventoryItemEvents",
 
     //StarterGui - Client
     INVENTORY_GUI = "InventoryGui",
@@ -19,7 +19,7 @@ export enum FileNames {
     PLAYER_CONTAINERS = "PlayerContainers",
     BASE_CONTAINERS = "BaseContainer",
     BASE_ITEM = "BaseItem",
-    ITEM = "Item",
+    UI_ITEM = "UIItem",
     ITEM_ICON = "ItemIcon",
     CONTAINER_ICON = "ContainerIcon",
     CONTAINER_BUTTON = "ContainerButton",
@@ -29,9 +29,13 @@ export enum FileNames {
     CONTAINER_ID = "ContainerId",
     ITEM_POP_UP_DESC = "ItemPopUpDesc",
     ITEM_QUANTITY = "ItemQuantity",
+    ITEM_TYPE = "ItemType",
+    ITEM_CATEGORY = "ItemCategory",
 
     //Workspace -> Containers
     CONTAINER = "Container#",
+    CONTAINER_ITEM = "ContainerItem",
+    CONTAINER_TYPE = "ContainerType",
 
     //PlayerGui - Client
     PLAYER_GUI = "PlayerGui",

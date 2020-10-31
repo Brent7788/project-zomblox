@@ -1,6 +1,8 @@
 import ItemValue from "../Modules/ItemValue";
-import {ItemEnum} from "../Modules/Enums/ItemEnum";
-import {HttpService, Workspace} from "@rbxts/services";
+import {ItemCategory, ItemEnum, ItemIcon, ItemType} from "../Modules/Enums/ItemEnum";
+import {Workspace} from "@rbxts/services";
+import InstanceGenerator from "../Utils/InstanceGenerator";
+import {FileNames} from "../Modules/Enums/FileNames";
 
 export default class ItemGeneratorService {
 
@@ -22,11 +24,29 @@ export default class ItemGeneratorService {
     public initTestItems(): void {
         let switchh = true;
         this.testContainerStringValues.forEach(stringValue => {
-           if (switchh) {
-               stringValue.Value = this.generateTestItems1();
-           } else {
-               stringValue.Value = this.generateTestItems2();
-           }
+            if (switchh) {
+                stringValue.Value = this.generateTestItems1();
+            } else {
+                stringValue.Value = this.generateTestItems2();
+            }
+            switchh = !switchh;
+        });
+    }
+
+    public initTestItems2(): void {
+        let switchh = true;
+        this.testContainers.forEach(containerPart => {
+            if (switchh) {
+                const item = new ItemValue(1, ItemEnum.CLEAVER_KNIFE);
+                const item2 = new ItemValue(3, ItemEnum.HUNTING_KNIFE);
+                this.createContainerItem(containerPart, item);
+                this.createContainerItem(containerPart, item2);
+            } else {
+                const item = new ItemValue(1, ItemEnum.KNIFE);
+                const item2 = new ItemValue(3, ItemEnum.BLOCK_FRYING_PAN);
+                this.createContainerItem(containerPart, item);
+                this.createContainerItem(containerPart, item2);
+            }
             switchh = !switchh;
         });
     }
@@ -36,12 +56,23 @@ export default class ItemGeneratorService {
         const splitItemValuesAsString = itemValuesAsString.split("#");
         const items: ItemValue[] = [];
         splitItemValuesAsString.forEach((itemValString) => {
-           const splitItemValString = itemValString.split(";");
-           if (splitItemValString !== undefined && splitItemValString.size() > 1) {
-               items.push(new ItemValue(tonumber(splitItemValString[0]), splitItemValString[1]));
-           }
+            const splitItemValString = itemValString.split(";");
+            if (splitItemValString !== undefined && splitItemValString.size() > 1) {
+                items.push(new ItemValue(tonumber(splitItemValString[0]), splitItemValString[1]));
+            }
         });
         return items;
+    }
+
+    //TODO This should not be here
+    public static toItemValue(itemValuesAsString: string): ItemValue | undefined {
+        let itemValue: ItemValue | undefined = undefined;
+
+        const splitItemValString = itemValuesAsString.split(";");
+        if (splitItemValString !== undefined && splitItemValString.size() > 1) {
+            itemValue = new ItemValue(tonumber(splitItemValString[0]), splitItemValString[1]);
+        }
+        return itemValue;
     }
 
     public generateTestItems1(): string {
@@ -58,6 +89,17 @@ export default class ItemGeneratorService {
         const items = [item, item2];
 
         return this.itemValueArrayToString(items);
+    }
+
+    private createContainerItem(parent: Instance,
+                               itemValue: ItemValue): void {
+        const containerItem = InstanceGenerator
+            .generateBoolValue(parent, false, FileNames.CONTAINER_ITEM)
+        InstanceGenerator.generateStringValue(containerItem, itemValue.id, FileNames.ID);
+        InstanceGenerator.generateStringValue(containerItem, itemValue.itemIcon, FileNames.ITEM_ICON);
+        InstanceGenerator.generateStringValue(containerItem, itemValue.itemType, FileNames.ITEM_TYPE);
+        InstanceGenerator.generateStringValue(containerItem, itemValue.itemCategory, FileNames.ITEM_CATEGORY);
+        InstanceGenerator.generateIntValue(containerItem, itemValue.itemCount, FileNames.ITEM_QUANTITY);
     }
 
     private itemValueArrayToString(itemValues: ItemValue[]): string {

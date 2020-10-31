@@ -1,9 +1,6 @@
-import {ReplicatedStorage, UserInputService, ContextActionService} from "@rbxts/services";
-import {FileNames} from "../../shared/Modules/Enums/FileNames";
+import {UserInputService} from "@rbxts/services";
 import InventoryService from "./InventoryService";
 
-//TODO Put in a class
-const remote = ReplicatedStorage.WaitForChild(FileNames.PICK_UP_EXAMPLE) as RemoteEvent;
 
 export default class ProjectZombloxPlayerInputService {
 
@@ -36,7 +33,6 @@ export default class ProjectZombloxPlayerInputService {
                         this.inventoryService.toggleInventory();
                         break;
                     case Enum.KeyCode.Space:
-                        remote.FireServer("Exampel test");
                         break;
                     case Enum.KeyCode.Q:
                         break;

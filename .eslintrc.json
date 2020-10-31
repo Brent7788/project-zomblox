@@ -15,5 +15,7 @@
 		"plugin:@typescript-eslint/recommended",
 		"plugin:roblox-ts/recommended"
 	],
-	"rules": {}
+	"rules": {
+		"no-use-before-define": [2, {"functions": true, "classes": true}]
+	}
 }
