@@ -33,7 +33,7 @@ export enum FileNames {
     ITEM_CATEGORY = "ItemCategory",
 
     //Workspace -> Containers
-    CONTAINER = "Container#",
+    CONTAINER = "Container",
     CONTAINER_ITEM = "ContainerItem",
     CONTAINER_TYPE = "ContainerType",
 

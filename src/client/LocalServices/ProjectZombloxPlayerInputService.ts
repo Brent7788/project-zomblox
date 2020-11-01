@@ -29,7 +29,7 @@ export default class ProjectZombloxPlayerInputService {
                 switch (input.KeyCode) {
                     //TODO Maybe Remove this
                     case Enum.KeyCode.E:
-                        this.inventoryService.destroyItemOutOtherInventoryIfEnable();
+                        this.inventoryService.refreshInventory();
                         this.inventoryService.toggleInventory();
                         break;
                     case Enum.KeyCode.Space:

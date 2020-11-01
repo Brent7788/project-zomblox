@@ -1,5 +1,4 @@
 import {FileNames} from "../../../shared/Modules/Enums/FileNames";
-import {ItemEnum} from "../../../shared/Modules/Enums/ItemEnum";
 import InstanceGenerator from "../../../shared/Utils/InstanceGenerator";
 import {Players} from "@rbxts/services";
 import ItemValue from "../../../shared/Modules/ItemValue";
@@ -15,6 +14,7 @@ export default class Item {
     public itemPopUpDescFrame: Frame;
     public itemQuantityText: TextLabel;
     public itemValue: ItemValue;
+    public stopPopUpLoop = false;
 
     constructor(item: Frame, guid: string, itemValue: ItemValue) {
         this.itemFrame = item.Clone();
@@ -38,26 +38,30 @@ export default class Item {
         this.itemPopUpDescFrame = item.Parent?.Parent?.FindFirstChild(FileNames.ITEM_POP_UP_DESC) as Frame;
         this.itemQuantityText = this.itemPopUpDescFrame.FindFirstChild(FileNames.ITEM_QUANTITY) as TextLabel;
 
-        this.onMouce();
+        //this.initItemPopUpDesc();
     }
 
-    //TODO Not done yet
-    private onMouce() {
-        let stop = true;
-
+    private initItemPopUpDesc() {
         this.itemFrame.MouseEnter.Connect(() => {
-            stop = true;
+            this.stopPopUpLoop = true;
             this.itemQuantityText.Text = `   Item Quantity: ${this.itemValue.itemCount}`;
-            while (stop) {
+            let count = 0;
+            while (this.stopPopUpLoop) {
                 this.itemPopUpDescFrame.Visible = true;
                 const playerMouse = Players.LocalPlayer.GetMouse() as PlayerMouse;
                 wait();
                 this.itemPopUpDescFrame.Position = UDim2.fromOffset(playerMouse.X + 8, playerMouse.Y + 8);
+                count++;
+                if (count > 300) {
+                    //TODO Find a better sulotion to break this loop
+                    this.stopPopUpLoop = false;
+                    this.itemPopUpDescFrame.Visible = false;
+                }
             }
         });
         this.itemFrame.MouseLeave.Connect((x, y) => {
             this.itemPopUpDescFrame.Visible = false;
-            stop = false;
+            this.stopPopUpLoop = false;
         });
     }
 

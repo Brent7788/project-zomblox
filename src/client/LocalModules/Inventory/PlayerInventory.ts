@@ -1,11 +1,12 @@
-import {Players} from "@rbxts/services";
 import {FileNames} from "../../../shared/Modules/Enums/FileNames";
+import Item from "./Item";
 
 export default class PlayerInventory {
     public localPlayerGui: PlayerGui;
     public playerInventoryScreen: ScreenGui;
     public playerInventoryFrame: Frame;
     public baseItem: Frame;
+    public items: Item[] = [];
 
     constructor(localPlayer: Player) {
         this.localPlayerGui = localPlayer.WaitForChild(FileNames.PLAYER_GUI) as PlayerGui;
@@ -44,6 +45,22 @@ export default class PlayerInventory {
                         break;
                 }
             }
+        }
+    }
+
+    public mergeDuplicateItems(itemToCheck: Item): void {
+        let itemExist = false;
+
+        for (const item of this.items) {
+            if (item.itemValue.id === itemToCheck.itemValue.id) {
+                itemExist = true;
+                item.itemValue.itemCount = item.itemValue.itemCount + itemToCheck.itemValue.itemCount;
+            }
+        }
+
+        if (!itemExist) {
+            itemToCheck.setItemParent(this.playerInventoryFrame);
+            this.items.push(itemToCheck);
         }
     }
 }

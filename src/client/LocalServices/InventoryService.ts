@@ -16,6 +16,7 @@ export default class InventoryService {
     private otherContainers: OtherContainers;
     private readonly regionService: RegionService;
     private inventoryItemEvents: RemoteEvent;
+    private stopPopUpLoop = false;
 
     constructor() {
         this.playerInventory = new PlayerInventory(Players.LocalPlayer);
@@ -65,7 +66,7 @@ export default class InventoryService {
         return player !== undefined ? baseParts : [];
     }
 
-    //TODO This method is to big
+    //TODO This method is to big, should not be test region
     public testRegionGenerateItem(containerParts: BasePart[]): void {
 
         let partDistanceFormCharacter = 10;
@@ -186,6 +187,7 @@ export default class InventoryService {
                                 containerId,
                                 containerItem.getItemValue());
                             this.onArrowMoveItem(newItem);
+                            this.initItemPopUpDesc(newItem);
                         }
                     }
                 });
@@ -223,12 +225,32 @@ export default class InventoryService {
         }
     }
 
-    public destroyItemOutOtherInventoryIfEnable() {
+    private initItemPopUpDesc(newItem: Item) {
+        newItem.itemPopUpDescFrame.Visible = false;
+        newItem.itemFrame.MouseEnter.Connect(() => {
+            this.stopPopUpLoop = true;
+            newItem.itemQuantityText.Text = `   Item Quantity: ${newItem.itemValue.itemCount}`;
+            while (this.stopPopUpLoop) {
+                print("Test");
+                newItem.itemPopUpDescFrame.Visible = true;
+                const playerMouse = Players.LocalPlayer.GetMouse() as PlayerMouse;
+                wait();
+                newItem.itemPopUpDescFrame.Position = UDim2.fromOffset(playerMouse.X + 8, playerMouse.Y + 8);
+            }
+        });
+        newItem.itemFrame.MouseLeave.Connect((x, y) => {
+            newItem.itemPopUpDescFrame.Visible = false;
+            this.stopPopUpLoop = false;
+        });
+    }
+
+    public refreshInventory() {
         if (!this.playerInventory.playerInventoryScreen.Enabled) {
             const otherInventoryItems = this.otherInventory.otherInventoryScreen.GetChildren() as Instance[];
             const otherContainers = this.otherContainers.otherContainerScreen.GetChildren() as Instance[];
             this.playerInventory.destroy(otherInventoryItems);
             this.playerInventory.destroy(otherContainers);
+            this.stopPopUpLoop = false;
         }
     }
 
@@ -237,8 +259,6 @@ export default class InventoryService {
         // Add to Other Inventory
         item.itemArrowButton.MouseButton1Click.Connect(() => {
             if (item && item.getItemParent() && item.getItemParent().Name === FileNames.PLAYER_INVENTORY) {
-                //item.setItemParent(this.otherInventory.otherInventoryScreen);
-                //item.itemArrowButton.Rotation = 180;
 
                 this.inventoryItemEvents.FireServer([
                     "Add",
@@ -251,7 +271,6 @@ export default class InventoryService {
 
                 //Add to Player Inventory
             } else if ((item && item.getItemParent() && item.getItemParent().Name === FileNames.OTHER_INVENTORY)) {
-                item.setItemParent(this.playerInventory.playerInventoryFrame);
                 item.itemArrowButton.Rotation = 0;
                 this.inventoryItemEvents.FireServer([
                     "Remove",
@@ -259,6 +278,7 @@ export default class InventoryService {
                     item.itemValue.itemUIValues,
                     this.otherContainers.currentContainerIdPlayerIsViewing
                 ]);
+                this.playerInventory.mergeDuplicateItems(item);
             } else {
                 print("In addAnyItem, the itemClone is null!");
             }
