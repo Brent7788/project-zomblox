@@ -4,10 +4,8 @@ import {FileNames} from "../../shared/Modules/Enums/FileNames";
 import Item from "../LocalModules/Inventory/Item";
 import RegionService from "../../shared/Service/RegionService";
 import {Players, ReplicatedStorage} from "@rbxts/services";
-import ItemGeneratorService from "../../shared/Service/ItemGeneratorService";
 import OtherContainers from "../LocalModules/Inventory/OtherContainers";
 import Container from "../LocalModules/Inventory/Container";
-import ItemValue from "../../shared/Modules/ItemValue";
 import ContainerItem from "../LocalModules/Inventory/ContainerItem";
 
 
@@ -18,8 +16,6 @@ export default class InventoryService {
     private otherContainers: OtherContainers;
     private readonly regionService: RegionService;
     private inventoryItemEvents: RemoteEvent;
-    private playerViewingWaitContainer: string | undefined;
-    private disconnectInventoryItemEvents: RBXScriptConnection | undefined;
 
     constructor() {
         this.playerInventory = new PlayerInventory(Players.LocalPlayer);
@@ -34,25 +30,21 @@ export default class InventoryService {
     }
 
     public onInventoryOpen() {
-        //TODO baseParts must be all container parts
-        let baseParts: BasePart[] = [];
-        const basePartAdded: BasePart[] = [];
-        const basePartPreAdded: BasePart[] = [];
-        const firstTimeCreate = true;
+        let containerParts: BasePart[] = [];
+        this.otherContainers.currentContainerIdPlayerIsViewing = undefined;
 
         while (this.playerInventory.playerInventoryScreen.Enabled) {
             wait(0.1);
 
-            if (baseParts.size() === 0) {
-                baseParts = this.findBasePartInRegion();
+            if (containerParts.size() === 0) {
+                containerParts = this.findContainerPartInRegion();
             } else {
-                this.testRegionGenerateItem(baseParts);
+                this.testRegionGenerateItem(containerParts);
             }
         }
     }
 
-    // TODO Find only container base parts
-    private findBasePartInRegion(): BasePart[] {
+    private findContainerPartInRegion(): BasePart[] {
         const allInstanceInRegion = this.regionService.FindPartsInRegion3(1000);
         let player: Player | undefined = undefined;
         const baseParts: Array<BasePart> = [];
@@ -73,71 +65,56 @@ export default class InventoryService {
         return player !== undefined ? baseParts : [];
     }
 
-    private destroyAllItemIfOutRange(baseParts: BasePart[]): void {
-        let destroyAllItems = true;
-
-        baseParts.forEach((basePart) => {
-            const distanceFromCharacter = Players.LocalPlayer?.DistanceFromCharacter(basePart.Position);
-            const containerId = basePart.FindFirstChild(FileNames.ID) as StringValue;
-            if (containerId !== undefined &&
-                distanceFromCharacter !== undefined &&
-                distanceFromCharacter <= 10) {
-                destroyAllItems = false;
-            }
-        });
-
-        if (baseParts.size() > 0 && destroyAllItems) {
-            this.playerInventory.destroy(this.otherInventory.otherInventoryScreen.GetChildren());
-        }
-    }
-
-    public testRegionGenerateItem(baseParts: BasePart[]): void {
-
-        const partsItemsAdded: BasePart[] = [];
+    //TODO This method is to big
+    public testRegionGenerateItem(containerParts: BasePart[]): void {
 
         let partDistanceFormCharacter = 10;
-        let closesPartToCharacter: BasePart | undefined;
+        let closesContainerPartToCharacter: BasePart | undefined;
 
-        //TODO Use normal for loop for breack
-        baseParts.forEach((basePart) => {
-            const distanceFromCharacter = Players.LocalPlayer.DistanceFromCharacter(basePart.Position);
-            const containerId = basePart.FindFirstChild(FileNames.ID) as StringValue;
+        for (const containerPart of containerParts) {
+            const distanceFromCharacter = Players.LocalPlayer.DistanceFromCharacter(containerPart.Position);
+            const containerId = containerPart.FindFirstChild(FileNames.ID) as StringValue;
 
-            if (this.isNull(this.playerViewingWaitContainer) &&
+            if (this.isNull(this.otherContainers.currentContainerIdPlayerIsViewing) &&
                 distanceFromCharacter <= partDistanceFormCharacter) {
-                closesPartToCharacter = basePart;
+                closesContainerPartToCharacter = containerPart;
                 partDistanceFormCharacter = distanceFromCharacter;
 
             } else if (this.isNotNull(containerId) &&
-                this.isNotNull(this.playerViewingWaitContainer) &&
-                this.playerViewingWaitContainer === containerId.Value) {
-                print("DIT IT weork");
-                closesPartToCharacter = basePart;
-                partDistanceFormCharacter = 0;
+                this.isNotNull(this.otherContainers.currentContainerIdPlayerIsViewing) &&
+                this.otherContainers.currentContainerIdPlayerIsViewing === containerId.Value) {
+                closesContainerPartToCharacter = containerPart;
+                break;
             }
-        });
+        }
+
+        if (this.isNotNull(closesContainerPartToCharacter)) {
+            const id = (closesContainerPartToCharacter as BasePart).FindFirstChild(FileNames.ID) as StringValue;
+            if(this.isNotNull(id)) {
+                this.otherContainers.currentContainerIdPlayerIsViewing = id.Value;
+            }
+        }
 
         const uiContainers = this.otherContainers.otherContainerScreen.GetChildren();
         let removeItems = true;
 
-        print(uiContainers.size());
         //Create ui containers
-        baseParts.forEach((basePart) => {
-            print(basePart.Name);
-            const distanceFromCharacter = Players.LocalPlayer.DistanceFromCharacter(basePart.Position);
+        containerParts.forEach((basePart) => {
+
             const containerId = basePart.FindFirstChild(FileNames.ID) as StringValue;
-            let containerExist = false;
-            let destroyContainer = false;
-            print(basePart.Name, containerId);
+
             if (this.isNotNull(containerId)) {
-                if (this.isNotNull(containerId) && distanceFromCharacter <= 10) {
+                const distanceFromCharacter = Players.LocalPlayer.DistanceFromCharacter(basePart.Position);
+                let containerExist = false;
+                let destroyContainer = false;
+
+                if (distanceFromCharacter <= 10) {
                     removeItems = false;
                 }
 
                 uiContainers.forEach(container => {
-                    if (this.isNotNull(containerId) && container.Name === "Container") {
+                    if (container.Name === "Container") {
                         const uiContainerId = container.FindFirstChild(FileNames.CONTAINER_ID) as StringValue;
-                        print("IN");
                         if (this.isNotNull(uiContainerId) &&
                             uiContainerId.Value === containerId.Value && distanceFromCharacter <= 10) {
                             containerExist = true;
@@ -149,7 +126,7 @@ export default class InventoryService {
                 });
 
 
-                if (this.isNotNull(containerId) && !containerExist && distanceFromCharacter <= 10) {
+                if (!containerExist && distanceFromCharacter <= 10) {
                     const containerType = basePart.FindFirstChild(FileNames.CONTAINER_TYPE) as StringValue;
 
                     const containerObject = new Container(
@@ -158,28 +135,26 @@ export default class InventoryService {
                         containerType?.Value);
 
                     containerObject.containerButton.MouseButton1Click.Connect(() => {
-                        this.playerViewingWaitContainer = containerId.Value;
+                        this.otherContainers.currentContainerIdPlayerIsViewing = containerId.Value;
                         //Remove ALL items in other inventory
                         const otherInventoryItems = this.otherInventory.otherInventoryScreen.GetChildren() as Instance[];
                         this.playerInventory.destroy(otherInventoryItems);
                     });
-                } else if (this.isNotNull(containerId) && destroyContainer && distanceFromCharacter > 10) {
+                } else if (destroyContainer && distanceFromCharacter > 10) {
                     const uiContainer = this.otherContainers.getUIContainerById(containerId.Value);
                     uiContainer?.Destroy();
-                    this.playerViewingWaitContainer = undefined;
+                    this.otherContainers.currentContainerIdPlayerIsViewing = undefined;
                 }
             }
         });
 
 
-        if (this.isNotNull(closesPartToCharacter)) {
-            const id = (closesPartToCharacter as BasePart).FindFirstChild(FileNames.ID) as StringValue;
+        if (!removeItems && this.isNotNull(closesContainerPartToCharacter)) {
+            const id = (closesContainerPartToCharacter as BasePart).FindFirstChild(FileNames.ID) as StringValue;
 
             if (this.isNotNull(id)) {
-                const basePartChildren = (closesPartToCharacter as BasePart).GetChildren();
+                const basePartChildren = (closesContainerPartToCharacter as BasePart).GetChildren();
                 const otherInventoryChildren = this.otherInventory.otherInventoryScreen.GetChildren();
-                const itemToCreate: Instance[] = [];
-                const uiItemsToRemove: Frame[] = [];
 
                 const containerId = id.Value;
 
@@ -191,19 +166,26 @@ export default class InventoryService {
                         const containerItemId = basePartChild.FindFirstChild(FileNames.ID) as StringValue;
                         let uiItemExist = false;
 
-                        //TODO Make normal for loop to brack
-                        otherInventoryChildren.forEach(otherInventoryChild => {
+                        for (const otherInventoryChild of otherInventoryChildren) {
                             if (otherInventoryChild.Name === FileNames.UI_ITEM) {
                                 const uiItem = otherInventoryChild as Frame;
                                 const uiItemId = uiItem.FindFirstChild(FileNames.ID) as StringValue;
                                 if (uiItemId.Value === containerItemId.Value) {
                                     uiItemExist = true;
+                                    break;
                                 }
                             }
-                        });
+                        }
 
                         if (!uiItemExist) {
-                            itemToCreate.push(basePartChild);
+                            const containerItemBool = basePartChild as BoolValue;
+                            const containerItem = new ContainerItem(containerItemBool);
+
+                            const newItem = new Item(
+                                this.otherInventory.baseItem,
+                                containerId,
+                                containerItem.getItemValue());
+                            this.onArrowMoveItem(newItem);
                         }
                     }
                 });
@@ -217,37 +199,20 @@ export default class InventoryService {
 
                         let containerItemExist = false;
 
-                        //TODO Make normal for loop to brack
-                        basePartChildren.forEach(basePartChild => {
+                        for (const basePartChild of basePartChildren) {
                             if (basePartChild.Name === FileNames.CONTAINER_ITEM) {
                                 const containerItemId = basePartChild.FindFirstChild(FileNames.ID) as StringValue;
                                 if (uiItemId.Value === containerItemId.Value) {
                                     containerItemExist = true;
+                                    break;
                                 }
                             }
-                        });
+                        }
 
                         if (!containerItemExist) {
-                            uiItemsToRemove.push(uiItem);
+                            uiItem.Destroy();
                         }
                     }
-                });
-
-                print(itemToCreate.size(), uiItemsToRemove.size(), otherInventoryChildren.size());
-
-                itemToCreate.forEach(value => {
-                    const containerItemBool = value as BoolValue;
-                    const containerItem = new ContainerItem(containerItemBool);
-
-                    const newItem = new Item(
-                        this.otherInventory.baseItem,
-                        containerId,
-                        containerItem.getItemValue());
-                    this.onArrowMoveItem(newItem);
-                });
-
-                uiItemsToRemove.forEach((item) => {
-                    item.Destroy();
                 });
             }
         }
@@ -267,32 +232,33 @@ export default class InventoryService {
         }
     }
 
-    public destroyFrameByContainerId(containerId: string, screenFrame: Frame): void {
-        const instances = screenFrame.GetChildren() as Instance[];
-        this.playerInventory.destroy(instances, (index) => {
-            const id = instances[index].FindFirstChild(FileNames.CONTAINER_ID) as StringValue;
-            if (id !== undefined && id.Value === containerId) {
-                instances[index].Destroy();
-            }
-        });
-    }
-
     public onArrowMoveItem(item: Item): void {
 
         // Add to Other Inventory
         item.itemArrowButton.MouseButton1Click.Connect(() => {
             if (item && item.getItemParent() && item.getItemParent().Name === FileNames.PLAYER_INVENTORY) {
-                item.setItemParent(this.otherInventory.otherInventoryScreen);
-                item.itemArrowButton.Rotation = 180;
-                this.inventoryItemEvents.FireServer(
-                    `Remove^${item.itemValue.id}^${item.itemValue.toObjectString()}^${this.playerViewingWaitContainer}`);
+                //item.setItemParent(this.otherInventory.otherInventoryScreen);
+                //item.itemArrowButton.Rotation = 180;
+
+                this.inventoryItemEvents.FireServer([
+                    "Add",
+                    item.itemValue.id,
+                    item.itemValue.itemUIValues,
+                    this.otherContainers.currentContainerIdPlayerIsViewing
+                ]);
+
+                item.itemFrame.Destroy();
 
                 //Add to Player Inventory
             } else if ((item && item.getItemParent() && item.getItemParent().Name === FileNames.OTHER_INVENTORY)) {
                 item.setItemParent(this.playerInventory.playerInventoryFrame);
                 item.itemArrowButton.Rotation = 0;
-                this.inventoryItemEvents.FireServer(
-                    `Add^${item.containerId.Value}^${item.itemValue.toObjectString()}^${this.playerViewingWaitContainer}`);
+                this.inventoryItemEvents.FireServer([
+                    "Remove",
+                    item.itemValue.id,
+                    item.itemValue.itemUIValues,
+                    this.otherContainers.currentContainerIdPlayerIsViewing
+                ]);
             } else {
                 print("In addAnyItem, the itemClone is null!");
             }

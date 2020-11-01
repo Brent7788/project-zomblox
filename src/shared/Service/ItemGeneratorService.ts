@@ -39,13 +39,13 @@ export default class ItemGeneratorService {
             if (switchh) {
                 const item = new ItemValue(1, ItemEnum.CLEAVER_KNIFE);
                 const item2 = new ItemValue(3, ItemEnum.HUNTING_KNIFE);
-                this.createContainerItem(containerPart, item);
-                this.createContainerItem(containerPart, item2);
+                item.createContainerItem(containerPart);
+                item2.createContainerItem(containerPart);
             } else {
                 const item = new ItemValue(1, ItemEnum.KNIFE);
                 const item2 = new ItemValue(3, ItemEnum.BLOCK_FRYING_PAN);
-                this.createContainerItem(containerPart, item);
-                this.createContainerItem(containerPart, item2);
+                item.createContainerItem(containerPart);
+                item2.createContainerItem(containerPart);
             }
             switchh = !switchh;
         });
@@ -91,7 +91,7 @@ export default class ItemGeneratorService {
         return this.itemValueArrayToString(items);
     }
 
-    private createContainerItem(parent: Instance,
+    /*private createContainerItem(parent: Instance,
                                itemValue: ItemValue): void {
         const containerItem = InstanceGenerator
             .generateBoolValue(parent, false, FileNames.CONTAINER_ITEM)
@@ -100,7 +100,7 @@ export default class ItemGeneratorService {
         InstanceGenerator.generateStringValue(containerItem, itemValue.itemType, FileNames.ITEM_TYPE);
         InstanceGenerator.generateStringValue(containerItem, itemValue.itemCategory, FileNames.ITEM_CATEGORY);
         InstanceGenerator.generateIntValue(containerItem, itemValue.itemCount, FileNames.ITEM_QUANTITY);
-    }
+    }*/
 
     private itemValueArrayToString(itemValues: ItemValue[]): string {
         let itemValuesAsString = "";

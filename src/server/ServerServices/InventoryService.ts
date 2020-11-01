@@ -1,6 +1,7 @@
 import {HttpService, ReplicatedStorage, Workspace} from "@rbxts/services";
 import {FileNames} from "../../shared/Modules/Enums/FileNames";
 import InstanceGenerator from "../../shared/Utils/InstanceGenerator";
+import ItemValue from "../../shared/Modules/ItemValue";
 
 
 export default class InventoryService {
@@ -27,40 +28,49 @@ export default class InventoryService {
 
     public initServerEvent(): void {
         this.inventoryItemEvents.OnServerEvent.Connect((player, args) => {
-            print("THE PPLAYER",player, player.UserId);
-            const splitArgs = (args as string).split("^");
-            this.AddOrRemoveItem(splitArgs[0], splitArgs[1], splitArgs[2], player, splitArgs[3]);
+            const values = args as Array<string>;
+            this.AddOrRemoveItem(values[0], values[1], values[2], values[3]);
         });
     }
 
     private AddOrRemoveItem(actionType: string,
-                            itemContainerId: string,
-                            itemValue: string,
-                            player: Player,
+                            itemId: string,
+                            itemUIValues: string,
                             playerViewingWaitContainer: string): void {
 
         if (this.testContainers === undefined) {
             print("Container parts in sever inventory service is null");
         } else {
 
-            this.testContainers.forEach((c) => {
-                const distanceFromPlayer = player.DistanceFromCharacter((c as Part).Position);
-                const container = c.FindFirstChild(FileNames.CONTAINER) as StringValue;
-                const containerId = c.WaitForChild(FileNames.ID) as StringValue;
-                if (actionType === "Add" && container !== undefined &&
-                    containerId !== undefined && containerId.Value === itemContainerId) {
+            for (const testContainer of this.testContainers) {
+                const containerId = testContainer.FindFirstChild(FileNames.ID) as StringValue;
 
-                    container.Value = container.Value.gsub(itemValue, "")[0];
-                    //player
-                    this.inventoryItemEvents.FireAllClients(`Remove^${player.UserId}^${itemContainerId}^${this.getItemId(itemValue)}`);
-                } else if (actionType === "Remove" && container !== undefined &&
-                    containerId !== undefined && distanceFromPlayer <= 10 && containerId.Value === playerViewingWaitContainer) {
+                if (containerId !== undefined && containerId.Value === playerViewingWaitContainer) {
+                    const containerItems = testContainer.GetChildren();
+                    let addItem = true;
 
-                    this.inventoryItemEvents.FireAllClients(`Add^${player.UserId}^${playerViewingWaitContainer}^${this.getItemId(itemValue)}^${itemValue}`);
-                    //TODO Fix multy has
-                    container.Value = `${container.Value}${itemValue}#`;
+                    for (const containerItem of containerItems) {
+                        const containerItemId = containerItem.FindFirstChild(FileNames.ID) as StringValue;
+
+                        if (containerItemId !== undefined && actionType === "Remove" &&
+                            containerItemId.Value === itemId) {
+                            containerItem.Destroy();
+                            break;
+                        } else if (containerItemId !== undefined && actionType === "Add" &&
+                            containerItemId.Value === itemId) {
+                            addItem = false;
+                            break;
+                        }
+                    }
+
+                    if (addItem && actionType === "Add") {
+                        //TODO Get item count
+                        const itemValue = new ItemValue(1, itemUIValues);
+                        itemValue.createContainerItem(testContainer);
+                    }
+                    break;
                 }
-            });
+            }
         }
     }
 

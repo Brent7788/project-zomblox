@@ -6,6 +6,8 @@ export default class OtherContainers {
     public inventoryScreen: ScreenGui;
     public otherContainerScreen: Frame;
     public baseContainer: Frame;
+    //Global var
+    public currentContainerIdPlayerIsViewing: string | undefined;
 
     constructor(localPlayer: Player) {
         this.localPlayerGui = localPlayer.WaitForChild(FileNames.PLAYER_GUI) as PlayerGui;
