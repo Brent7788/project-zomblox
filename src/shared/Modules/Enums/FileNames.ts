@@ -20,6 +20,7 @@ export enum FileNames {
     BASE_CONTAINERS = "BaseContainer",
     BASE_ITEM = "BaseItem",
     UI_ITEM = "UIItem",
+    UI_ITEM_LOADER = "ItemLoader",
     ITEM_ICON = "ItemIcon",
     CONTAINER_ICON = "ContainerIcon",
     CONTAINER_BUTTON = "ContainerButton",

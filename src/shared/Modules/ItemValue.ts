@@ -14,10 +14,10 @@ export default class ItemValue {
         this.itemCount = itemCount !== undefined ? itemCount : 1;
         this.itemUIValues = itemUIValues;
 
-        const itemValues = this.formatItemEnum(itemUIValues);
-        this.itemIcon = itemValues[0];
-        this.itemType = itemValues[1];
-        this.itemCategory = itemValues[2];
+        const itemValues = ItemValue.formatItemEnum(itemUIValues);
+        this.itemIcon = itemValues[0].trim();
+        this.itemType = itemValues[1].trim();
+        this.itemCategory = itemValues[2].trim();
         this.id = this.getIdFromIconImage();
     }
 
@@ -36,7 +36,7 @@ export default class ItemValue {
         InstanceGenerator.generateIntValue(containerItem, this.itemCount, FileNames.ITEM_QUANTITY);
     }
 
-    private formatItemEnum(itemEnum: ItemEnum | string): string[] {
+    public static formatItemEnum(itemEnum: ItemEnum | string): string[] {
         return itemEnum.split(",");
     }
 

@@ -48,13 +48,22 @@ export default class PlayerInventory {
         }
     }
 
-    public mergeDuplicateItems(itemToCheck: Item): void {
+    public removeItemById(itemId: string): void {
+        for (let i = 0; i < this.items.size(); i++) {
+            if (this.items[i].itemValue.id === itemId) {
+                this.items.remove(i)
+            }
+        }
+    }
+
+    public setAndMergeDuplicateItems(itemToCheck: Item): void {
         let itemExist = false;
 
         for (const item of this.items) {
             if (item.itemValue.id === itemToCheck.itemValue.id) {
                 itemExist = true;
                 item.itemValue.itemCount = item.itemValue.itemCount + itemToCheck.itemValue.itemCount;
+                item.itemQuantityValue.Value = item.itemValue.itemCount;
             }
         }
 

@@ -13,6 +13,7 @@ export default class ProjectZombloxPlayerInputService {
     }
 
     public began(): void {
+        this.inventoryService.initUIMouseEL();
 
         //TODO us to overide key press
         /*ContextActionService.BindAction(this.OPEN_INVENTORY,
@@ -29,8 +30,10 @@ export default class ProjectZombloxPlayerInputService {
                 switch (input.KeyCode) {
                     //TODO Maybe Remove this
                     case Enum.KeyCode.E:
-                        this.inventoryService.refreshInventory();
-                        this.inventoryService.toggleInventory();
+                        if (!this.inventoryService.isItemLoading) {
+                            this.inventoryService.refreshInventory();
+                            this.inventoryService.toggleInventory();
+                        }
                         break;
                     case Enum.KeyCode.Space:
                         break;
@@ -47,8 +50,10 @@ export default class ProjectZombloxPlayerInputService {
                 switch (input.KeyCode) {
                     //TODO Maybe Remove this
                     case Enum.KeyCode.E:
-                        print("Close");
-                        this.inventoryService.onInventoryOpen();
+                        if (!this.inventoryService.isItemLoading) {
+                            print("Close");
+                            this.inventoryService.onInventoryOpen();
+                        }
                         break;
                     case Enum.KeyCode.Space:
                         print('Test scpae');

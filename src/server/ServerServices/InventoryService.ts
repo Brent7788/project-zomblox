@@ -29,18 +29,21 @@ export default class InventoryService {
     public initServerEvent(): void {
         this.inventoryItemEvents.OnServerEvent.Connect((player, args) => {
             const values = args as Array<string>;
-            this.AddOrRemoveItem(values[0], values[1], values[2], values[3]);
+            this.AddOrRemoveItem(values[0], values[1], values[2], tonumber(values[3]), values[4]);
         });
     }
 
     private AddOrRemoveItem(actionType: string,
                             itemId: string,
                             itemUIValues: string,
+                            itemQuantity: number | undefined,
                             playerViewingWaitContainer: string): void {
 
         if (this.testContainers === undefined) {
             print("Container parts in sever inventory service is null");
         } else {
+
+            const itemValue = new ItemValue(itemQuantity, itemUIValues);
 
             for (const testContainer of this.testContainers) {
                 const containerId = testContainer.FindFirstChild(FileNames.ID) as StringValue;
@@ -58,14 +61,14 @@ export default class InventoryService {
                             break;
                         } else if (containerItemId !== undefined && actionType === "Add" &&
                             containerItemId.Value === itemId) {
+                            const quantity = containerItem.FindFirstChild(FileNames.ITEM_QUANTITY) as IntValue;
+                            quantity.Value = quantity.Value + ((itemQuantity !== undefined) ? itemQuantity : 0);
                             addItem = false;
                             break;
                         }
                     }
 
                     if (addItem && actionType === "Add") {
-                        //TODO Get item count
-                        const itemValue = new ItemValue(1, itemUIValues);
                         itemValue.createContainerItem(testContainer);
                     }
                     break;

@@ -38,12 +38,12 @@ export default class ItemGeneratorService {
         this.testContainers.forEach(containerPart => {
             if (switchh) {
                 const item = new ItemValue(1, ItemEnum.CLEAVER_KNIFE);
-                const item2 = new ItemValue(3, ItemEnum.HUNTING_KNIFE);
+                const item2 = new ItemValue(1, ItemEnum.HUNTING_KNIFE);
                 item.createContainerItem(containerPart);
                 item2.createContainerItem(containerPart);
             } else {
                 const item = new ItemValue(1, ItemEnum.KNIFE);
-                const item2 = new ItemValue(3, ItemEnum.BLOCK_FRYING_PAN);
+                const item2 = new ItemValue(1, ItemEnum.BLOCK_FRYING_PAN);
                 item.createContainerItem(containerPart);
                 item2.createContainerItem(containerPart);
             }

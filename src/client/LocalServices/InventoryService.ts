@@ -18,6 +18,8 @@ export default class InventoryService {
     private inventoryItemEvents: RemoteEvent;
     //Item Pop Up
     public itemPopUpDescFrame: Frame;
+    //TODO Maybe don't use this, is Hacky solution
+    public isItemLoading = false;
 
     constructor() {
         this.playerInventory = new PlayerInventory(Players.LocalPlayer);
@@ -26,6 +28,24 @@ export default class InventoryService {
         this.regionService = new RegionService();
         this.inventoryItemEvents = ReplicatedStorage.WaitForChild(FileNames.INVENTORY_ITEM_EVENTS) as RemoteEvent;
         this.itemPopUpDescFrame = this.playerInventory.playerInventoryScreen.FindFirstChild(FileNames.ITEM_POP_UP_DESC) as Frame;
+    }
+
+    //TODO Find better name and implemantations, maybe also disconnect
+    public initUIMouseEL() {
+        //Mouse Enter
+        this.playerInventory.playerInventoryFrame.MouseEnter.Connect(() => {
+            this.itemPopUpDescFrame.Visible = false;
+        });
+        this.otherInventory.otherInventoryScreen.MouseEnter.Connect(() => {
+            this.itemPopUpDescFrame.Visible = false;
+        });
+        //Mouse Leave
+        this.playerInventory.playerInventoryFrame.MouseLeave.Connect(() => {
+            this.itemPopUpDescFrame.Visible = false;
+        });
+        this.otherInventory.otherInventoryScreen.MouseLeave.Connect(() => {
+            this.itemPopUpDescFrame.Visible = false;
+        });
     }
 
     public toggleInventory(): void {
@@ -138,12 +158,14 @@ export default class InventoryService {
                         containerType?.Value);
 
                     containerObject.containerButton.MouseButton1Click.Connect(() => {
-                        this.otherContainers.currentContainerIdPlayerIsViewing = containerId.Value;
-                        //Remove ALL items in other inventory
-                        const otherInventoryItems = this.otherInventory.otherInventoryScreen.GetChildren() as Instance[];
-                        this.playerInventory.destroy(otherInventoryItems);
+                        if (!this.isItemLoading) {
+                            this.otherContainers.currentContainerIdPlayerIsViewing = containerId.Value;
+                            //Remove ALL items in other inventory
+                            const otherInventoryItems = this.otherInventory.otherInventoryScreen.GetChildren() as Instance[];
+                            this.playerInventory.destroy(otherInventoryItems);
+                        }
                     });
-                } else if (destroyContainer && distanceFromCharacter > 10) {
+                } else if (destroyContainer && distanceFromCharacter > 10 && !this.isItemLoading) {
                     const uiContainer = this.otherContainers.getUIContainerById(containerId.Value);
                     uiContainer?.Destroy();
                     this.otherContainers.currentContainerIdPlayerIsViewing = undefined;
@@ -174,6 +196,11 @@ export default class InventoryService {
                                 const uiItem = otherInventoryChild as Frame;
                                 const uiItemId = uiItem.FindFirstChild(FileNames.ID) as StringValue;
                                 if (uiItemId.Value === containerItemId.Value) {
+                                    //Update UI item quantity
+                                    const itemQuantity = basePartChild.FindFirstChild(FileNames.ITEM_QUANTITY) as IntValue;
+                                    const quantity = otherInventoryChild.FindFirstChild(FileNames.ITEM_QUANTITY) as IntValue;
+                                    quantity.Value = itemQuantity.Value;
+                                    //Trigger add item if not exist
                                     uiItemExist = true;
                                     break;
                                 }
@@ -199,6 +226,7 @@ export default class InventoryService {
 
                         const uiItem = otherInventoryChild as Frame;
                         const uiItemId = uiItem.FindFirstChild(FileNames.ID) as StringValue;
+                        const uiItemLoader = uiItem.FindFirstChild(FileNames.UI_ITEM_LOADER) as TextLabel;
 
                         let containerItemExist = false;
 
@@ -212,7 +240,8 @@ export default class InventoryService {
                             }
                         }
 
-                        if (!containerItemExist) {
+                        // uiItemLoader.Visible Don't destroy ui item if the loader is visible
+                        if (!containerItemExist && !uiItemLoader.Visible) {
                             uiItem.Destroy();
                         }
                     }
@@ -220,7 +249,8 @@ export default class InventoryService {
             }
         }
 
-        if (removeItems) {
+        //Remove all items if out of range
+        if (removeItems && !this.isItemLoading) {
             const otherInventoryItems = this.otherInventory.otherInventoryScreen.GetChildren();
             this.playerInventory.destroy(otherInventoryItems);
         }
@@ -238,29 +268,42 @@ export default class InventoryService {
 
     public onArrowMoveItem(item: Item): void {
 
-        // Add to Other Inventory
+        // Add to Other Inventory and remove form Player Inventory
         item.itemArrowButton.MouseButton1Click.Connect(() => {
             if (item && item.getItemParent() && item.getItemParent().Name === FileNames.PLAYER_INVENTORY) {
 
-                this.inventoryItemEvents.FireServer([
-                    "Add",
-                    item.itemValue.id,
-                    item.itemValue.itemUIValues,
-                    this.otherContainers.currentContainerIdPlayerIsViewing
-                ]);
+                if (!this.isItemLoading) {
+                    this.isItemLoading = true;
+                    item.displayItemLoader();
+                    this.inventoryItemEvents.FireServer([
+                        "Add",
+                        item.itemValue.id,
+                        item.itemValue.itemUIValues,
+                        item.itemQuantityValue.Value,
+                        this.otherContainers.currentContainerIdPlayerIsViewing
+                    ]);
 
-                item.itemFrame.Destroy();
-
-                //Add to Player Inventory
+                    this.playerInventory.removeItemById(item.itemValue.id);
+                    item.itemFrame.Destroy();
+                    this.isItemLoading = false;
+                }
+                //Add to Player Inventory and remove from Other Inventory
             } else if ((item && item.getItemParent() && item.getItemParent().Name === FileNames.OTHER_INVENTORY)) {
-                item.itemArrowButton.Rotation = 0;
-                this.inventoryItemEvents.FireServer([
-                    "Remove",
-                    item.itemValue.id,
-                    item.itemValue.itemUIValues,
-                    this.otherContainers.currentContainerIdPlayerIsViewing
-                ]);
-                this.playerInventory.mergeDuplicateItems(item);
+
+                if (!this.isItemLoading) {
+                    this.isItemLoading = true;
+                    item.itemArrowButton.Rotation = 0;
+                    this.inventoryItemEvents.FireServer([
+                        "Remove",
+                        item.itemValue.id,
+                        item.itemValue.itemUIValues,
+                        item.itemQuantityValue.Value,
+                        this.otherContainers.currentContainerIdPlayerIsViewing
+                    ]);
+                    item.displayItemLoader();
+                    this.playerInventory.setAndMergeDuplicateItems(item);
+                    this.isItemLoading = false;
+                }
             } else {
                 print("In addAnyItem, the itemClone is null!");
             }
