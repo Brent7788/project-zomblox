@@ -16,7 +16,8 @@ export default class InventoryService {
     private otherContainers: OtherContainers;
     private readonly regionService: RegionService;
     private inventoryItemEvents: RemoteEvent;
-    private stopPopUpLoop = false;
+    //Item Pop Up
+    public itemPopUpDescFrame: Frame;
 
     constructor() {
         this.playerInventory = new PlayerInventory(Players.LocalPlayer);
@@ -24,6 +25,7 @@ export default class InventoryService {
         this.otherContainers = new OtherContainers(Players.LocalPlayer);
         this.regionService = new RegionService();
         this.inventoryItemEvents = ReplicatedStorage.WaitForChild(FileNames.INVENTORY_ITEM_EVENTS) as RemoteEvent;
+        this.itemPopUpDescFrame = this.playerInventory.playerInventoryScreen.FindFirstChild(FileNames.ITEM_POP_UP_DESC) as Frame;
     }
 
     public toggleInventory(): void {
@@ -91,7 +93,7 @@ export default class InventoryService {
 
         if (this.isNotNull(closesContainerPartToCharacter)) {
             const id = (closesContainerPartToCharacter as BasePart).FindFirstChild(FileNames.ID) as StringValue;
-            if(this.isNotNull(id)) {
+            if (this.isNotNull(id)) {
                 this.otherContainers.currentContainerIdPlayerIsViewing = id.Value;
             }
         }
@@ -187,7 +189,6 @@ export default class InventoryService {
                                 containerId,
                                 containerItem.getItemValue());
                             this.onArrowMoveItem(newItem);
-                            this.initItemPopUpDesc(newItem);
                         }
                     }
                 });
@@ -225,32 +226,13 @@ export default class InventoryService {
         }
     }
 
-    private initItemPopUpDesc(newItem: Item) {
-        newItem.itemPopUpDescFrame.Visible = false;
-        newItem.itemFrame.MouseEnter.Connect(() => {
-            this.stopPopUpLoop = true;
-            newItem.itemQuantityText.Text = `   Item Quantity: ${newItem.itemValue.itemCount}`;
-            while (this.stopPopUpLoop) {
-                print("Test");
-                newItem.itemPopUpDescFrame.Visible = true;
-                const playerMouse = Players.LocalPlayer.GetMouse() as PlayerMouse;
-                wait();
-                newItem.itemPopUpDescFrame.Position = UDim2.fromOffset(playerMouse.X + 8, playerMouse.Y + 8);
-            }
-        });
-        newItem.itemFrame.MouseLeave.Connect((x, y) => {
-            newItem.itemPopUpDescFrame.Visible = false;
-            this.stopPopUpLoop = false;
-        });
-    }
-
     public refreshInventory() {
+        this.itemPopUpDescFrame.Visible = false;
         if (!this.playerInventory.playerInventoryScreen.Enabled) {
             const otherInventoryItems = this.otherInventory.otherInventoryScreen.GetChildren() as Instance[];
             const otherContainers = this.otherContainers.otherContainerScreen.GetChildren() as Instance[];
             this.playerInventory.destroy(otherInventoryItems);
             this.playerInventory.destroy(otherContainers);
-            this.stopPopUpLoop = false;
         }
     }
 

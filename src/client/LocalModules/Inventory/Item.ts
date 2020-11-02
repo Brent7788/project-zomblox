@@ -14,7 +14,6 @@ export default class Item {
     public itemPopUpDescFrame: Frame;
     public itemQuantityText: TextLabel;
     public itemValue: ItemValue;
-    public stopPopUpLoop = false;
 
     constructor(item: Frame, guid: string, itemValue: ItemValue) {
         this.itemFrame = item.Clone();
@@ -38,30 +37,30 @@ export default class Item {
         this.itemPopUpDescFrame = item.Parent?.Parent?.FindFirstChild(FileNames.ITEM_POP_UP_DESC) as Frame;
         this.itemQuantityText = this.itemPopUpDescFrame.FindFirstChild(FileNames.ITEM_QUANTITY) as TextLabel;
 
-        //this.initItemPopUpDesc();
+        this.initItemPopUpDesc();
     }
 
     private initItemPopUpDesc() {
-        this.itemFrame.MouseEnter.Connect(() => {
-            this.stopPopUpLoop = true;
+        this.itemFrame.MouseEnter.Connect((x, y) => {
+            wait();
             this.itemQuantityText.Text = `   Item Quantity: ${this.itemValue.itemCount}`;
+            this.itemPopUpDescFrame.Visible = true;
             let count = 0;
-            while (this.stopPopUpLoop) {
+            this.itemPopUpDescFrame.Position = UDim2.fromOffset(x + 15, y + 10);
+            while (this.itemPopUpDescFrame.Visible) {
                 this.itemPopUpDescFrame.Visible = true;
                 const playerMouse = Players.LocalPlayer.GetMouse() as PlayerMouse;
                 wait();
-                this.itemPopUpDescFrame.Position = UDim2.fromOffset(playerMouse.X + 8, playerMouse.Y + 8);
+                this.itemPopUpDescFrame.Position = UDim2.fromOffset(playerMouse.X + 15, playerMouse.Y + 10);
                 count++;
-                if (count > 300) {
-                    //TODO Find a better sulotion to break this loop
-                    this.stopPopUpLoop = false;
+                //Break loop just encase
+                if (count > 3000) {
                     this.itemPopUpDescFrame.Visible = false;
                 }
             }
         });
         this.itemFrame.MouseLeave.Connect((x, y) => {
             this.itemPopUpDescFrame.Visible = false;
-            this.stopPopUpLoop = false;
         });
     }
 
