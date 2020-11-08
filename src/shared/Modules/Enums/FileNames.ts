@@ -7,6 +7,7 @@ export enum FileNames {
     //WorkSpace
     HUMANOID = "Humanoid",
     PART = "Part",
+    HUMANOID_ROOT_PART = "HumanoidRootPart",
 
     //ReplicatedStorage - Server and Client
     INVENTORY_ITEM_EVENTS = "InventoryItemEvents",
@@ -40,6 +41,11 @@ export enum FileNames {
 
     //PlayerGui - Client
     PLAYER_GUI = "PlayerGui",
+
+    //Zombies
+    ZOMBIES = "Zombies",
+    LIVE_ZOMBIES = "LiveZombies",
+    ZOMBIE = "Zombie",
 
     //Other
     ID = "Id"

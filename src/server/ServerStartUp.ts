@@ -1,14 +1,16 @@
 import ItemGeneratorService from "../shared/Service/ItemGeneratorService";
 import InventoryService from "./ServerServices/InventoryService";
-import {Workspace} from "@rbxts/services";
+import ZombieBehaviourService from "./ServerServices/Zombie/ZombieBehaviourService";
 
 export default class ServerStartUp {
     private readonly itemGenerator: ItemGeneratorService;
     private readonly inventoryService: InventoryService;
+    private readonly zombieBehaviourService: ZombieBehaviourService;
 
     constructor() {
         this.itemGenerator = new ItemGeneratorService();
         this.inventoryService = new InventoryService();
+        this.zombieBehaviourService = new ZombieBehaviourService();
     }
 
     public start(): void {
@@ -20,5 +22,6 @@ export default class ServerStartUp {
         this.itemGenerator.initTestItems2();
         this.inventoryService.containerIdGenerator();
         this.inventoryService.initServerEvent();
+        this.zombieBehaviourService.startZombie();
     }
 }

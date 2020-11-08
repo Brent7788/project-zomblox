@@ -14,7 +14,7 @@ export default class Item {
     public itemCategoryText: TextLabel;
     public itemLoader: TextLabel;
     public itemPopUpDescFrame: Frame;
-    //TODO There is still weard item quantity bug
+    //TODO There is still weird item quantity bug
     public itemQuantityText: TextLabel;
     public itemValue: ItemValue;
 

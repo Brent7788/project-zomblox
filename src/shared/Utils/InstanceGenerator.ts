@@ -1,4 +1,4 @@
-import {HttpService} from "@rbxts/services";
+import {HttpService, Workspace} from "@rbxts/services";
 
 export default class InstanceGenerator {
 
@@ -48,5 +48,19 @@ export default class InstanceGenerator {
 
     public static generateGUID(): string {
         return HttpService.GenerateGUID();
+    }
+
+    public static generateWayPoint(waypointPosition: Vector3): Part {
+        const part = new Instance("Part");
+        part.Name = "WayPoint";
+        part.Shape = Enum.PartType.Ball;
+        part.Material =  Enum.Material.Neon;
+        part.Size = new Vector3(0.3, 0.3, 0.3)
+        part.Position = waypointPosition;
+        part.Color = new Color3(219, 75, 39);
+        part.Anchored = true;
+        part.CanCollide = false;
+        part.Parent = Workspace;
+        return part;
     }
 }
