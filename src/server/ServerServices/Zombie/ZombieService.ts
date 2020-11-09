@@ -1,14 +1,16 @@
 import {FileNames} from "../../../shared/Modules/Enums/FileNames";
 import InstanceGenerator from "../../../shared/Utils/InstanceGenerator";
+import {PathfindingService} from "@rbxts/services";
 
 export default class ZombieService {
 
     public id: StringValue;
     public zombieModel: Model;
+    public path: Path;
     public readonly zombieParts: Instance[] = [];
     public zombieHumanoid: Humanoid;
     public zombieHumanoidRootPart: Part;
-    public isSleeping = false;
+    public isChasingPlayer = false;
 
     constructor(zombieModel: Model) {
         this.id = InstanceGenerator.generateStringValue(
@@ -16,6 +18,13 @@ export default class ZombieService {
             InstanceGenerator.generateGUID(),
             FileNames.ID
         );
+
+        this.path = PathfindingService.CreatePath({
+            AgentHeight: 5,
+            AgentRadius: 2.5,
+            AgentCanJump: false
+        });
+
         this.zombieModel = zombieModel;
         this.zombieHumanoid = this.zombieModel.FindFirstChild(FileNames.HUMANOID) as Humanoid;
         this.zombieHumanoidRootPart = this.zombieModel.FindFirstChild(FileNames.HUMANOID_ROOT_PART) as Part;
@@ -38,6 +47,10 @@ export default class ZombieService {
         this.zombieHumanoid.SetStateEnabled(Enum.HumanoidStateType.Swimming, false);
         this.zombieHumanoid.SetStateEnabled(Enum.HumanoidStateType.Flying, false);
         this.zombieHumanoid.SetStateEnabled(Enum.HumanoidStateType.Jumping, false);
+    }
+
+    public Position(): Vector3 {
+        return this.zombieHumanoidRootPart.Position;
     }
 
     public setNetworkOwner(): void {

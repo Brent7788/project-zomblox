@@ -30,7 +30,7 @@ export default class InventoryService {
         this.itemPopUpDescFrame = this.playerInventory.playerInventoryScreen.FindFirstChild(FileNames.ITEM_POP_UP_DESC) as Frame;
     }
 
-    //TODO Find better name and implemantations, maybe also disconnect
+    //TODO Find better name and implementations, maybe also disconnect
     public initUIMouseEL() {
         //Mouse Enter
         this.playerInventory.playerInventoryFrame.MouseEnter.Connect(() => {
@@ -68,7 +68,9 @@ export default class InventoryService {
     }
 
     private findContainerPartInRegion(): BasePart[] {
-        const allInstanceInRegion = this.regionService.FindPartsInRegion3(1000);
+        //TODO VERY IMPORTANT make FindPartsInRegion3WithWhiteList include humanoid
+        //     Max Parts should pe pre-calculated
+        const allInstanceInRegion = this.regionService.FindPartsInRegion3(10000);
         let player: Player | undefined = undefined;
         const baseParts: Array<BasePart> = [];
         allInstanceInRegion.forEach((basePart) => {

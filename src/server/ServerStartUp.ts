@@ -14,14 +14,9 @@ export default class ServerStartUp {
     }
 
     public start(): void {
-        // This is how to load catalog item by id. I can build humanoid
-        // by getting all the part(catalog) ids.
-/*        const t = InsertService.LoadAsset(3064931584) as Model;
-        t.Parent = Workspace;*/
-        //this.itemGenerator.initTestItems();
         this.itemGenerator.initTestItems2();
         this.inventoryService.containerIdGenerator();
         this.inventoryService.initServerEvent();
-        this.zombieBehaviourService.startZombie();
+        this.zombieBehaviourService.initZombie();
     }
 }

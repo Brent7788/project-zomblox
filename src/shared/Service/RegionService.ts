@@ -18,6 +18,7 @@ export default class RegionService {
     }
 
     public FindPartsInRegion3(maxParts = 10): BasePart[] {
+        //TODO VERY IMPORTANT make FindPartsInRegion3WithWhiteList include humanoid
         return Workspace.FindPartsInRegion3(this.testRegion, this.testPartToIgnor, maxParts);
     }
 }

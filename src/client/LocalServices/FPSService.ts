@@ -16,7 +16,7 @@ export default class FPSService {
     public initFPS(): void {
         RunService.RenderStepped.Connect((step) => {
             const fps = 1/step;
-            this.fpsText.Text = "FPS: " + fps;
+            this.fpsText.Text = "FPS: " + math.round(fps);
         })
     }
 }
