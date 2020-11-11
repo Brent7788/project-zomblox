@@ -11,6 +11,7 @@ export default class ZombieService {
     public zombieHumanoid: Humanoid;
     public zombieHumanoidRootPart: Part;
     public isChasingPlayer = false;
+    public random: Random;
 
     constructor(zombieModel: Model) {
         this.id = InstanceGenerator.generateStringValue(
@@ -18,6 +19,8 @@ export default class ZombieService {
             InstanceGenerator.generateGUID(),
             FileNames.ID
         );
+
+        this.random = new Random();
 
         this.path = PathfindingService.CreatePath({
             AgentHeight: 5,
@@ -36,7 +39,7 @@ export default class ZombieService {
         //TODO Maybe there must be a zombie config object
         //     Zombies must have random speed. Set the random object as a field
 
-        this.zombieHumanoid.WalkSpeed = new Random().NextNumber(5.7, 8.7);
+        this.zombieHumanoid.WalkSpeed = this.random.NextNumber(5.7, 8.7);
         //this.zombieHumanoid.WalkSpeed = 15;
     }
 
@@ -52,8 +55,12 @@ export default class ZombieService {
         this.zombieHumanoid.SetStateEnabled(Enum.HumanoidStateType.Jumping, false);
     }
 
-    public Position(): Vector3 {
+    public position(): Vector3 {
         return this.zombieHumanoidRootPart.Position;
+    }
+
+    public moveTo(location: Vector3, part?: BasePart): void {
+        this.zombieHumanoid.MoveTo(location, part);
     }
 
     public setNetworkOwner(): void {
@@ -66,6 +73,29 @@ export default class ZombieService {
                 (zombiePart as Part).SetNetworkOwner(undefined);
                 (zombiePart as MeshPart).CanCollide = false;
             }
+        }
+    }
+
+    public showZombiePath(wayPoints: PathWaypoint[], div = 1, breakBy = -1): Part[] {
+        const createdWayPointsIdentifier: Part[] = [];
+
+        for (let i = 0; i < wayPoints.size(); i++) {
+
+            if (i === breakBy) {
+                break;
+            }
+
+            if (i <= (wayPoints.size() / div)) {
+                createdWayPointsIdentifier.push(InstanceGenerator.generateWayPoint(wayPoints[i].Position));
+            }
+        }
+
+        return createdWayPointsIdentifier;
+    }
+
+    public destroyZombiePathIdentifier(wayPointsIdentifier: Part[]): void {
+        for (const part of wayPointsIdentifier) {
+            part.Destroy();
         }
     }
 }
