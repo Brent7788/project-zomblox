@@ -21,7 +21,7 @@ export default class ZombieService {
 
         this.path = PathfindingService.CreatePath({
             AgentHeight: 5,
-            AgentRadius: 2.5,
+            AgentRadius: 4,
             AgentCanJump: false
         });
 
@@ -34,7 +34,10 @@ export default class ZombieService {
         this.setNetworkOwner();
 
         //TODO Maybe there must be a zombie config object
-        this.zombieHumanoid.WalkSpeed = 8;
+        //     Zombies must have random speed. Set the random object as a field
+
+        this.zombieHumanoid.WalkSpeed = new Random().NextNumber(5.7, 8.7);
+        //this.zombieHumanoid.WalkSpeed = 15;
     }
 
     private setZombieState(): void {

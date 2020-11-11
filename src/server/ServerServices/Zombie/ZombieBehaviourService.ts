@@ -60,121 +60,161 @@ export default class ZombieBehaviourService {
         const random = new Random();
 
         for (let i = 0; i < this.zombies.size(); i++) {
-            const promise = this.zombieBrain(
+            this.zombieBrain(
                 random,
-                this.zombies[i]);
+                this.zombies[i])
+                .then()
+                .catch((reason) => {
+                    warn("Error in iniZombie",reason);
+                });
         }
 
         Players.PlayerAdded.Connect(player => {
             print(player);
             this.players.push(player);
-            const p = this.zombieToPlayer(player);
+            this.zombieDetectPlayer(player)
+                .then()
+                .catch((reason) => {
+                    warn("Error in iniZombie", reason);
+                });
         });
     }
 
-    private async zombieToPlayer(player: Player): Promise<void> {
+    private async zombieDetectPlayer(player: Player): Promise<void> {
+        //TODO Make zombie range random settings
         const inRange = 40;
-        print("WAht is playerysdf", player);
-
+        let isPlayerInGame = false;
+        let count = 0;
         while (wait(1)) {
+            //TODO THis is not good, find better way
+            isPlayerInGame = false;
+            for (const playerToCheck of this.players) {
+                if (playerToCheck.UserId === player.UserId) {
+                    isPlayerInGame = true;
+                    break;
+                }
+            }
+            if (!isPlayerInGame) {
+                break;
+            }
             for (const zombie of this.zombies) {
 
                 if (!zombie.isChasingPlayer) {
                     const d = player.DistanceFromCharacter(zombie.Position());
                     if (d <= inRange) {
-                        zombie.isChasingPlayer = true;
-                        print("IN RANGE", zombie.id);
-                        const root = player.Character?.FindFirstChild(FileNames.HUMANOID_ROOT_PART) as Part;
+                        const playerRootPart = player.Character?.FindFirstChild(FileNames.HUMANOID_ROOT_PART) as Part;
 
-                        const mm = this.zombieChasePlayer(zombie, root);
+                        if (playerRootPart !== undefined) {
+                            zombie.isChasingPlayer = true;
+                            count++;
+                            print("Zombie follow", count);
+
+                            this.moveing2(zombie, playerRootPart)
+                                .then()
+                                .catch((reason) => warn("Error in zombieChasePlayer", reason));
+                        }
                     }
                 }
             }
         }
     }
 
-    private async zombieChasePlayer(zombie: ZombieService, root: Part): Promise<void> {
-        let x = math.round(root.Position.X);
-        let z = math.round(root.Position.Z);
-        let m = zombie.Position().sub(root.Position).Magnitude;
 
-        zombie.path.Blocked.Connect(blockedWaypointIdx => {
-           print("BLOCKKKKKK", blockedWaypointIdx);
+
+    private async moveing2(zombie: ZombieService, playerRootPart: Part): Promise<void> {
+
+        let isNotBlocked = true;
+
+        const moveToFinishConnection =
+            zombie.zombieHumanoid.MoveToFinished.Connect((reached) => {
+            //print('R', reached);
+            if(!reached) {
+                isNotBlocked = true;
+            }
         });
 
-        while (wait(0.1)) {
+        const blockedBlockConnection = zombie.path.Blocked.Connect(blockedWaypointIdx => {
+           isNotBlocked = true;
+        });
 
-            zombie.path.ComputeAsync(zombie.Position(), root.Position);
+        const random = new Random();
+        let zombieDistinctBetweenPlayer = 0;
+        const xx = random.NextNumber(-8, 8);
+        const zz = random.NextNumber(-8, 8);
+        const runningConnection = zombie.zombieHumanoid.Running.Connect(speed => {
 
-            if (zombie.path.Status === Enum.PathStatus.Success) {
-
-                let waypoints = zombie.path.GetWaypoints();
-
-                const wayPointsIdentifier: Part[] = [];
-
-                //Create visible waypoints
-                /*for (let i = 0; i < waypoints.size(); i++) {
-                    wayPointsIdentifier.push(InstanceGenerator.generateWayPoint(waypoints[i].Position));
-                }*/
-
-                for (let i = 0; i < waypoints.size(); i++) {
-
-                    print(i);
-                    zombie.zombieHumanoid.MoveTo(waypoints[i].Position);
-                    zombie.zombieHumanoid.MoveToFinished.Wait();
-
-                    if (math.round(root.Position.X) !== x || math.round(root.Position.Z) !== z) {
-
-                        waypoints = this.testt(zombie, root, waypoints);
-                        i = -1;
-                    }
-                    m = zombie.Position().sub(root.Position).Magnitude;
-                    //TODO Make zombie range random settings
-                    if (m > 40) {
-                        zombie.isChasingPlayer = false;
-                        const i = this.zombieBrain(new Random(), zombie);
-                        break;
-                    }
-
-                    x = math.round(root.Position.X);
-                    z = math.round(root.Position.Z);
+            if (isNotBlocked && speed <= 3.5) {
+                zombieDistinctBetweenPlayer = zombie.Position().sub(playerRootPart.Position).Magnitude;
+                if (zombieDistinctBetweenPlayer > 7) {
+                    isNotBlocked = false;
+                    //To stop zombie moving
+                    zombie.zombieHumanoid.MoveTo(zombie.Position());
                 }
+            }
+        });
+        while (wait(0.1)) {
+            zombieDistinctBetweenPlayer = zombie.Position().sub(playerRootPart.Position).Magnitude;
 
-                //Destroy visible waypoints
-                /*for (const part of wayPointsIdentifier) {
-                    part.Destroy();
-                }*/
+            if (isNotBlocked) {
+
+                if (zombieDistinctBetweenPlayer <= 10) {
+                    zombie.zombieHumanoid.MoveTo(playerRootPart.Position);
+                } else {
+                    const playerPosition = new Vector3(
+                        (playerRootPart.Position.X + xx),
+                        playerRootPart.Position.Y,
+                        (playerRootPart.Position.Z + zz));
+                    zombie.zombieHumanoid.MoveTo(playerPosition);
+                }
+            } else {
+                const xx2 = random.NextNumber(-25, 25);
+                const zz2 = random.NextNumber(-25, 25);
+                const playerPosition = new Vector3(
+                    (playerRootPart.Position.X + xx2),
+                    playerRootPart.Position.Y,
+                    (playerRootPart.Position.Z + zz2));
+                zombie.path.ComputeAsync(zombie.Position(), playerPosition);
+
+                if (zombie.path.Status === Enum.PathStatus.Success) {
+
+                    const waypoints = zombie.path.GetWaypoints();
+
+                    //Create visible waypoints
+                    /*for (let i = 0; i < waypoints.size(); i++) {
+                        if (i <= (waypoints.size() / 2)) {
+                            InstanceGenerator.generateWayPoint(waypoints[i].Position);
+                        }
+                    }
+*/
+                    for (let i = 0; i < waypoints.size(); i++) {
+
+                        if (isNotBlocked) {
+                            break;
+                        }
+
+                        if (i <= (waypoints.size() / 2)) {
+                            zombie.zombieHumanoid.MoveTo(waypoints[i].Position);
+                            zombie.zombieHumanoid.MoveToFinished.Wait();
+                        } else {
+                            zombie.zombieHumanoid.MoveTo(playerRootPart.Position);
+                        }
+                    }
+                }
+                isNotBlocked = true;
             }
 
             //TODO Make zombie range random settings
-            if (m > 40) {
+            if (zombieDistinctBetweenPlayer > 60) {
                 zombie.isChasingPlayer = false;
-                const i = this.zombieBrain(new Random(), zombie, false);
+                this.zombieBrain(random, zombie, false)
+                    .then()
+                    .catch((reason) => warn("Error in moveing2", reason));
+                moveToFinishConnection.Disconnect();
+                blockedBlockConnection.Disconnect();
+                runningConnection.Disconnect();
                 break;
             }
-
-            x = math.round(root.Position.X);
-            z = math.round(root.Position.Z);
         }
-    }
-
-    private testt(zombie: ZombieService,
-                  root: Part,
-                  waypoints: PathWaypoint[]): PathWaypoint[] {
-
-        zombie.path.ComputeAsync(zombie.Position(), root.Position);
-
-        if (zombie.path.Status === Enum.PathStatus.Success) {
-
-            waypoints = zombie.path.GetWaypoints();
-
-            //Create visible waypoints
-            for (let i = 0; i < waypoints.size(); i++) {
-                InstanceGenerator.generateWayPoint(waypoints[i].Position);
-            }
-        }
-
-        return waypoints;
     }
 
     //TODO Method name should change
@@ -294,53 +334,6 @@ export default class ZombieBehaviourService {
         }
         return index
     }
-
-    /*    private zombieSleepPoint(zombie: ZombieService, waypoints: PathWaypoint[]) {
-            const currentStartPoint = zombie.zombieHumanoidRootPart.Position;
-            const currentEndPoint = waypoints[waypoints.size() - 1].Position;
-            let distt = currentStartPoint.sub(currentEndPoint).Magnitude;
-            let zombieMainCrossPoint = new ZombieCrossPoint();
-            let index = -1;
-
-            for (const zombieS of this.zombies) {
-                if (zombieS.isSleeping) {
-                    print("ISseleeping", zombieS.isSleeping);
-                    const secondZPos = zombieS.zombieHumanoidRootPart.Position;
-                    const ds = currentStartPoint.sub(secondZPos).Magnitude;
-
-                    if (distt >= ds) {
-                        const zombieCrossPoint = this.getZombieCrossPoint(
-                            currentStartPoint,
-                            currentEndPoint,
-                            secondZPos,
-                            new Vector3(secondZPos.X + secondZPos.X, secondZPos.Y, secondZPos.Z + secondZPos.Z)
-                        );
-
-                        if (zombieCrossPoint.isCrossPoint) {
-                            distt = ds;
-                            zombieMainCrossPoint = zombieCrossPoint;
-                        }
-                    }
-                }
-            }
-
-            //TODO Duplicate code put in method
-            if (zombieMainCrossPoint.isCrossPoint) {
-
-                const zombieCrossPoint = zombieMainCrossPoint.crossPoint as Vector3
-                let currentStartPointMagnitude = currentStartPoint.sub(zombieCrossPoint).Magnitude;
-
-                for (let i = 0; i < waypoints.size(); i++) {
-                    const wayPointMagnitude = waypoints[i].Position.sub(zombieCrossPoint).Magnitude;
-                    if (wayPointMagnitude <= currentStartPointMagnitude) {
-                        currentStartPointMagnitude = wayPointMagnitude;
-                        index = i;
-                    }
-                }
-            }
-
-            return index;
-        }*/
 
     //TODO Maybe move this in to ZombieCrossPoint class
     private getZombieCrossPoint(startPoint1: Vector3,
