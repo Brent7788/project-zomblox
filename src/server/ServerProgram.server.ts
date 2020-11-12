@@ -6,6 +6,7 @@ class ServerProgram {
 
     public static run(): void {
         this.startUp.start();
+        this.startUp.playerSetup();
     }
 }
 

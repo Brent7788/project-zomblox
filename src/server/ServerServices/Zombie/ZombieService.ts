@@ -12,6 +12,19 @@ export default class ZombieService {
     public zombieHumanoidRootPart: Part;
     public isChasingPlayer = false;
     public random: Random;
+    public testRun: AnimationTrack;
+
+    //Zombie Normal behavior settings
+    //TODO I should put this in an object, ZombieBehaviorSetting or something
+    public normalXPos = 0;
+    public normalZPos = 0;
+    public zombieSleep = 0;
+    public readonly minZombieSleep: number;
+    public readonly maxZombieSleep: number;
+    //Zombie activity range, on normal behavior
+    //TODO Some zombie must be able to move further then others.
+    //     Maybe make this random
+    public readonly minMaxMovePosition = 47;
 
     constructor(zombieModel: Model) {
         this.id = InstanceGenerator.generateStringValue(
@@ -39,8 +52,15 @@ export default class ZombieService {
         //TODO Maybe there must be a zombie config object
         //     Zombies must have random speed. Set the random object as a field
 
-        this.zombieHumanoid.WalkSpeed = this.random.NextNumber(5.7, 8.7);
+        this.zombieHumanoid.WalkSpeed = this.random.NextNumber(5.7, 9.3);
         //this.zombieHumanoid.WalkSpeed = 15;
+        this.minZombieSleep = this.random.NextNumber(13.4, 21.7);
+        this.maxZombieSleep = this.random.NextNumber(41.7, 71.7);
+
+        const runn = new Instance("Animation") as Animation;
+        runn.AnimationId = "rbxassetid://507767714";
+
+        this.testRun = this.zombieHumanoid.LoadAnimation(runn);
     }
 
     private setZombieState(): void {
@@ -98,4 +118,30 @@ export default class ZombieService {
             part.Destroy();
         }
     }
+
+    public pathComputeAsync(toPosition: Vector3): void {
+        this.path.ComputeAsync(this.position(), toPosition);
+    }
+
+    //Zombie normal behavior functions
+    public setRandomMinMaxMovingPosition(): void {
+        this.normalXPos = this.random.NextInteger(
+            (this.position().X - this.minMaxMovePosition),
+            (this.position().X + this.minMaxMovePosition)
+        );
+        this.normalZPos = this.random.NextInteger(
+            (this.position().Z - this.minMaxMovePosition),
+            (this.position().Z + this.minMaxMovePosition)
+        );
+    }
+
+    //Zombie will sleep for small amount of time
+    public powerNap(): void {
+        wait(this.randomSleepTime());
+    }
+
+    public randomSleepTime(): number {
+        return this.random.NextNumber(this.minZombieSleep, this.maxZombieSleep);
+    }
+    //End Zombie normal behavior
 }

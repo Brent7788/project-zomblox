@@ -1,6 +1,7 @@
 import ItemGeneratorService from "../shared/Service/ItemGeneratorService";
 import InventoryService from "./ServerServices/InventoryService";
 import ZombieBehaviourService from "./ServerServices/Zombie/ZombieBehaviourService";
+import {Players} from "@rbxts/services";
 
 export default class ServerStartUp {
     private readonly itemGenerator: ItemGeneratorService;
@@ -18,5 +19,12 @@ export default class ServerStartUp {
         this.inventoryService.containerIdGenerator();
         this.inventoryService.initServerEvent();
         this.zombieBehaviourService.initZombie();
+    }
+
+    public playerSetup(): void {
+        Players.PlayerAdded.Connect(player => {
+            print(player);
+            this.zombieBehaviourService.initZombieDetectionBehaviour(player);
+        });
     }
 }
