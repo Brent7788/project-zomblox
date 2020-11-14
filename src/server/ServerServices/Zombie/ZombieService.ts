@@ -10,9 +10,14 @@ export default class ZombieService {
     public readonly zombieParts: Instance[] = [];
     public zombieHumanoid: Humanoid;
     public zombieHumanoidRootPart: Part;
-    public isChasingPlayer = false;
     public random: Random;
+    //TODO TheTest animation, take out if not going to use
     public testRun: AnimationTrack;
+
+    //Target(Player)
+    public isChasingPlayer = false;
+    public targetUserId = 0;
+    public currentDistanceFormPlayer = 0;
 
     //Zombie Normal behavior settings
     //TODO I should put this in an object, ZombieBehaviorSetting or something
@@ -123,7 +128,16 @@ export default class ZombieService {
         this.path.ComputeAsync(this.position(), toPosition);
     }
 
-    //Zombie normal behavior functions
+    public isChasingByWhatPlayer(userId: number): boolean {
+        let isChasing = false;
+
+        if (this.targetUserId !== undefined && this.isChasingPlayer && this.targetUserId === userId) {
+            isChasing = true;
+        }
+        return isChasing;
+    }
+
+    //>>Zombie normal behavior functions
     public setRandomMinMaxMovingPosition(): void {
         this.normalXPos = this.random.NextInteger(
             (this.position().X - this.minMaxMovePosition),
@@ -143,5 +157,5 @@ export default class ZombieService {
     public randomSleepTime(): number {
         return this.random.NextNumber(this.minZombieSleep, this.maxZombieSleep);
     }
-    //End Zombie normal behavior
+    //>>End Zombie normal behavior
 }

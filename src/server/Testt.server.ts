@@ -17,3 +17,18 @@ TweenService.Create(
 );
 */
 
+/*
+let count = 0;
+let tt = true;
+
+RunService.Heartbeat.Connect(step => {
+
+    switch (tt) {
+        case true:
+            tt = false;
+            wait(1);
+            print("DONE", count);
+            tt = true;
+            break;
+    }
+});*/

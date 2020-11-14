@@ -1,4 +1,4 @@
-import {HttpService, Workspace} from "@rbxts/services";
+import {Debris, HttpService, Workspace} from "@rbxts/services";
 
 export default class InstanceGenerator {
 
@@ -62,5 +62,21 @@ export default class InstanceGenerator {
         part.CanCollide = false;
         part.Parent = Workspace;
         return part;
+    }
+
+    public static debugBeam(distance: Vector3, newCFrame: CFrame): void {
+        const beam = new Instance("Part")
+        beam.BrickColor = new BrickColor("Bright red")
+        beam.Material = Enum.Material.Neon
+        beam.Anchored = true
+        beam.CanCollide = false
+        beam.Name = "RaycastHitboxDebugPart"
+
+        const Dist = (distance).Magnitude
+        beam.Size = new Vector3(0.1, 0.1, Dist)
+        beam.CFrame = newCFrame.mul(new CFrame(0, 0, -Dist / 2));
+
+        beam.Parent = Workspace.Terrain
+        Debris.AddItem(beam, 1);
     }
 }

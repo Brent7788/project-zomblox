@@ -18,6 +18,7 @@ export default class LocalStartUp {
     public start(): void {
         this.projectZombloxPlayerInputService.began();
         this.fpsService.initFPS();
-        this.zombiesService.testt();
+        this.zombiesService.initZombieAnimationService();
+        this.zombiesService.zombieAnimationRun();
     }
 }

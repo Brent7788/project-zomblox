@@ -5,6 +5,7 @@ export default class ZombieAnimationService {
     public zombieModel: Model;
     public humanoid: Humanoid;
     public running: AnimationTrack;
+    public targetPlayer: Player | undefined = undefined;
     public test: AnimationTrack;
 
     constructor(zombieModel: Model) {
@@ -43,5 +44,20 @@ export default class ZombieAnimationService {
             pos = new Vector3();
         }
         return pos;
+    }
+
+    public isPlayingForThisPlayer(userId: number): boolean {
+        let done = false;
+
+        if (this.targetPlayer !== undefined &&
+            this.targetPlayer.UserId === userId) {
+            done = true;
+        }
+
+        return done;
+    }
+
+    public isTargetPlayerFullyInGame(): boolean {
+        return this.targetPlayer !== undefined && this.targetPlayer.Character !== undefined;
     }
 }

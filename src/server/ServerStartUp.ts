@@ -23,7 +23,6 @@ export default class ServerStartUp {
 
     public playerSetup(): void {
         Players.PlayerAdded.Connect(player => {
-            print(player);
             this.zombieBehaviourService.initZombieDetectionBehaviour(player);
         });
     }
