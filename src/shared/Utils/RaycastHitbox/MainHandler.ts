@@ -1,6 +1,6 @@
 import {RunService, Workspace} from "@rbxts/services";
 import HitboxObject from "./HitboxObject";
-import CastVectorPoint from "./CastLogics/CastVectorPoint";
+import {FileNames} from "../../Modules/Enums/FileNames";
 
 export default class MainHandler {
     private SYNC_RATE: RBXScriptSignal;
@@ -10,55 +10,49 @@ export default class MainHandler {
     constructor() {
         this.SYNC_RATE = RunService.IsClient() ? RunService.RenderStepped : RunService.Heartbeat;
 
+        //TODO This increase the script activity significantly
         this.SYNC_RATE.Connect(() => {
             for (let i = 0; i < this.ActiveHitboxes.size(); i++) {
                 const hitBox = this.ActiveHitboxes[i];
                 if (hitBox.deleted) {
                     this.remove(hitBox.object);
-                } else {
+                } else if (hitBox.active) {
                     for (const point of hitBox.points) {
-                        if (hitBox.active) {
-                            //TODO This mite not work because point is a copy
-                            point.LastPosition = undefined;
-                        } else {
-                            //TODO Put CastVectorPoint method in to Point class
-                            const reyStart = CastVectorPoint.solve(point, hitBox.debugMode)[0];
-                            const rayDir = CastVectorPoint.solve(point, hitBox.debugMode)[1];
-                            const RelativePointToWorld = CastVectorPoint.solve(point, hitBox.debugMode)[2];
-                            const rayCastResult = Workspace.Raycast(reyStart, rayDir, hitBox.rayCastParams);
-                            CastVectorPoint.lastPosition(point, RelativePointToWorld);
+                        print("THe Action hit", hitBox.points.size(), hitBox.active, this.ActiveHitboxes.size());
+                        const solve = point.solve(hitBox.debugMode);
+                        const reyStart = solve[0];
+                        const rayDir = solve[1];
+                        const RelativePointToWorld = solve[2];
+                        const rayCastResult = Workspace.Raycast(reyStart, rayDir, hitBox.rayCastParams);
 
-                            if (rayCastResult !== undefined) {
-                                const hitPart = rayCastResult.Instance
-                                let findModel: Model | boolean | undefined = false;
+                        point.lastPosition(RelativePointToWorld);
 
-                                if (!hitBox.partMode) {
-                                    findModel = hitPart.FindFirstAncestorOfClass("Model");
-                                }
+                        if (rayCastResult !== undefined) {
+                            const hitPart = rayCastResult.Instance;
+                            const parent = hitPart.Parent;
+                            const humanoid = parent?.FindFirstChild(FileNames.HUMANOID);
 
-
-                                //const humanoid = findModel !== undefined ? findModel : findModel.FindFirstChildOfClass("Humanoid")
-                                let humanoid;
-
-                                if (findModel) {
-                                    humanoid = findModel;
-                                }
-
-                                const target = findModel !== undefined || (hitBox.partMode && hitPart !== undefined);
-
-                                /*if (target && !hitBox.targetsHit[target])
-                                {
-                                }*/
+                            if (humanoid && hitBox.onHit) {
+                                hitBox.onHit(hitPart, (humanoid as Humanoid));
                             }
                         }
                     }
                 }
+                this.setAllLastPosition(hitBox);
             }
         });
     }
 
+    private setAllLastPosition(hitboxObject: HitboxObject): void {
+        if (!hitboxObject.active && !hitboxObject.isAllLastPositionSetNull) {
+            for (const point of hitboxObject.points) {
+                point.LastPosition = undefined;
+            }
+            hitboxObject.isAllLastPositionSetNull = true;
+        }
+    }
+
     public add(hitboxObject: HitboxObject): void {
-       // assert(typeof(hitboxObject) )
         this.ActiveHitboxes.push(hitboxObject);
     }
 
@@ -71,10 +65,10 @@ export default class MainHandler {
         }
     }
 
-    public check(object: Instance): Instance | undefined {
+    public check(object: Instance): HitboxObject | undefined {
         for (let i = 0; i < this.ActiveHitboxes.size(); i++) {
             if (this.ActiveHitboxes[i].object === object) {
-                return this.ActiveHitboxes[i].object;
+                return this.ActiveHitboxes[i];
             }
         }
         return undefined;
