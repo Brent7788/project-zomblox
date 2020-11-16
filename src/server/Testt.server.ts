@@ -1,36 +1,9 @@
-import {Workspace} from "@rbxts/services";
+import {Players, Workspace} from "@rbxts/services";
 import RaycastHitbox from "../shared/Utils/RaycastHitbox/RaycastHitbox";
-
-const test = Workspace.WaitForChild("TestMe") as Part;
-const test2 = Workspace.WaitForChild("TestMe2") as Part;
-print("Start", test);
-
-const hitbox = RaycastHitbox.Initialize(test);
-
-/*hitbox.hitboxObject?.SetPoints(test,
-    [new Vector3(1, 0, 0), new Vector3(5, 0, 0), new Vector3(10, 0, 0)]);*/
+import InstanceGenerator from "../shared/Utils/InstanceGenerator";
+import {FileNames} from "../shared/Modules/Enums/FileNames";
 
 
-hitbox.OnHit((hitPart, humanoid) => {
-    print("IT works",hitPart, humanoid);
-});
+const s = new Vector3(0, 5, 0);
+const l = new Vector3(21, 5, 4);
 
-hitbox.HitStart();
-
-wait(15);
-RaycastHitbox.Deinitialize(test);
-
-const hitbox2 = RaycastHitbox.Initialize(test2);
-
-/*hitbox.hitboxObject?.SetPoints(test,
-    [new Vector3(1, 0, 0), new Vector3(5, 0, 0), new Vector3(10, 0, 0)]);*/
-
-
-
-hitbox2.OnHit((hitPart, humanoid) => {
-    print("IT works",hitPart, humanoid);
-});
-
-hitbox2.HitStart();
-wait(10);
-hitbox2.HitStop();

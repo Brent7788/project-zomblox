@@ -1,6 +1,7 @@
 import MainHandler from "./MainHandler";
 import HitboxObject from "./HitboxObject";
 
+//https://github.com/Swordphin/raycastHitboxRbxl/wiki/Beginner-Examples
 export default class RaycastHitbox {
 
     public static handler = new MainHandler();

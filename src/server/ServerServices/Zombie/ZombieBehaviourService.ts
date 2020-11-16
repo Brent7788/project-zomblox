@@ -3,14 +3,16 @@ import {FileNames} from "../../../shared/Modules/Enums/FileNames";
 import ZombieService from "./ZombieService";
 import ZombiePath from "../../ServerModules/ZombiePath";
 import ZombieCrossPoint from "../../ServerModules/ZombieCrossPoint";
+import InstanceGenerator from "../../../shared/Utils/InstanceGenerator";
 
 export default class ZombieBehaviourService {
 
     //private path: Path;
     private readonly zombieModels: Instance[] | undefined;
     private readonly zombies: ZombieService[] = [];
-    //private readonly zombiesRayCastParams: RaycastParams;
+    private zombiesRayCastParams: RaycastParams = new RaycastParams();
     private zombiePaths: ZombiePath[] = [];
+    private windowTargets: Part[] = [];
     private players: Player[] = [];
 
     constructor() {
@@ -30,12 +32,10 @@ export default class ZombieBehaviourService {
             }
         });
 
-        //TODO Put in private method
-        /*this.zombiesRayCastParams = new RaycastParams();
-        this.zombiesRayCastParams.FilterType = Enum.RaycastFilterType.Whitelist;
-        this.zombiesRayCastParams.FilterDescendantsInstances =
-            (this.zombieModels !== undefined) ? this.zombieModels : [];*/
+        const p = Workspace.WaitForChild("TestParts").WaitForChild("WindowTarget") as Part;
+        this.windowTargets.push(p);
 
+        this.initRayCastParamsWhitelistPlayers()
     }
 
     private setZombieServices(): void {
@@ -46,15 +46,22 @@ export default class ZombieBehaviourService {
         }
     }
 
+    //TODO Dont need method for this put in constructor
+    private initRayCastParamsWhitelistPlayers(): void {
+        this.zombiesRayCastParams.FilterType = Enum.RaycastFilterType.Blacklist;
+        this.zombiesRayCastParams.FilterDescendantsInstances =
+            (this.zombieModels !== undefined) ? this.zombieModels : [];
+    }
+
     public initZombie(): void {
-        for (let i = 0; i < this.zombies.size(); i++) {
+        /*for (let i = 0; i < this.zombies.size(); i++) {
             this.zombieNormalBehaviour(
                 this.zombies[i])
                 .then()
                 .catch((reason) => {
                     warn("Error in iniZombie", reason);
                 });
-        }
+        }*/
     }
 
     public initZombieDetectionBehaviour(player: Player): void {
@@ -77,7 +84,7 @@ export default class ZombieBehaviourService {
         const isCharacterLoaded = this.waitForPlayerCharacter(player);
 
         //TODO Maybe the wait can be 2 seconds
-        while (wait(1)) {
+        while (wait(0.1)) {
             //TODO THis is not good, find better way
 
             if (!this.isPlayerFullyInGame(player) || !isCharacterLoaded) {
@@ -95,13 +102,47 @@ export default class ZombieBehaviourService {
 
                         print("Zombie follow", count);
 
-                        this.zombieStartChasingPlayer(zombie, player)
-                            .then()
-                            .catch((reason) => warn("Error in zombieDetectPlayer", reason));
+                        const f = this.isPlayerINf(player, zombie);
+
+                        if (f) {
+                            this.zombieStartChasingPlayer(zombie, player)
+                                .then()
+                                .catch((reason) => warn("Error in zombieDetectPlayer", reason));
+                        } else {
+                            print("No chase");
+                        }
                     }
                 }
             }
         }
+    }
+
+    private isPlayerINf(player: Player, zombie: ZombieService): boolean {
+        const playerRootPart = player.Character?.FindFirstChild(FileNames.HUMANOID_ROOT_PART) as Part;
+        let chase = false;
+        if (playerRootPart !== undefined) {
+           // this.zombiesRayCastParams.FilterDescendantsInstances = [player];
+            //playerRootPart.CFrame.LookVector.sub(zombie.position())
+            //TODO Note* Mul with 50 is the distance
+            InstanceGenerator.debugBeam2(zombie.position(),
+                playerRootPart.Position.sub(zombie.position()).Unit.mul(new Vector3(50,50,50)));
+            const rayCastTarget = Workspace.Raycast(zombie.position(), playerRootPart.Position.sub(zombie.position()).Unit.mul(new Vector3(50,50,50)), this.zombiesRayCastParams);
+            print(rayCastTarget);
+            if (rayCastTarget !== undefined) {
+                const basePart = rayCastTarget.Instance.Parent;
+
+                if (basePart !== undefined && basePart.IsA("Model")) {
+                    print(basePart.Name);
+                    const humanoid = basePart.FindFirstChild(FileNames.HUMANOID) as Humanoid;
+
+                    if (humanoid !== undefined) {
+                        //chase = true;
+                    }
+                }
+            }
+        }
+
+        return chase;
     }
 
     private async zombieStartChasingPlayer(zombie: ZombieService, player: Player): Promise<void> {

@@ -72,11 +72,46 @@ export default class InstanceGenerator {
         beam.CanCollide = false
         beam.Name = "RaycastHitboxDebugPart"
 
-        const Dist = (distance).Magnitude
-        beam.Size = new Vector3(0.1, 0.1, Dist)
+        const Dist = (distance).Magnitude;
+        beam.Size = new Vector3(0.1, 0.1, Dist);
         beam.CFrame = newCFrame.mul(new CFrame(0, 0, -Dist / 2));
 
-        beam.Parent = Workspace.Terrain
-        Debris.AddItem(beam, 1);
+        beam.Parent = Workspace.Terrain;
+        //Debris.AddItem(beam, 1);
+    }
+
+    public static debugBeam2(origin: Vector3, destination: Vector3, time = 1): void {
+        const beam = new Instance("Beam");
+        beam.Parent = Workspace;
+        beam.Color = new ColorSequence(new Color3(46, 255, 0));
+        beam.Width0 = 0.2;
+        beam.Width1 = 0.2;
+
+
+        const part1 = new Instance("Part");
+        part1.Anchored = true;
+        part1.CanCollide = false;
+        part1.Transparency = 1;
+        part1.Parent = Workspace;
+        part1.Position = origin;
+
+        const part2 = new Instance("Part");
+        part2.Parent = Workspace;
+        part2.Anchored = true;
+        part2.CanCollide = false;
+        part2.Transparency = 1;
+        part2.Position = destination;
+
+        const a = new Instance("Attachment");
+        a.Parent = part1;
+        beam.Attachment0 = a;
+        const a2 = new Instance("Attachment");
+        a2.Parent = part2;
+        beam.Attachment1 = a2;
+        Debris.AddItem(beam, time);
+        Debris.AddItem(part1, time);
+        Debris.AddItem(part2, time);
+        Debris.AddItem(a, time);
+        Debris.AddItem(a, time);
     }
 }
