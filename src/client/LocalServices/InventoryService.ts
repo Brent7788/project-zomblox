@@ -3,7 +3,7 @@ import OtherInventory from "../LocalModules/Inventory/OtherInventory";
 import {FileNames} from "../../shared/Modules/Enums/FileNames";
 import Item from "../LocalModules/Inventory/Item";
 import RegionService from "../../shared/Service/RegionService";
-import {Players, ReplicatedStorage} from "@rbxts/services";
+import {Players, Workspace, ReplicatedStorage} from "@rbxts/services";
 import OtherContainers from "../LocalModules/Inventory/OtherContainers";
 import Container from "../LocalModules/Inventory/Container";
 import ContainerItem from "../LocalModules/Inventory/ContainerItem";
@@ -25,7 +25,8 @@ export default class InventoryService {
         this.playerInventory = new PlayerInventory(Players.LocalPlayer);
         this.otherInventory = new OtherInventory(Players.LocalPlayer);
         this.otherContainers = new OtherContainers(Players.LocalPlayer);
-        this.regionService = new RegionService();
+        const testRegPart = Workspace.WaitForChild("Reg") as Part;
+        this.regionService = new RegionService(testRegPart);
         this.inventoryItemEvents = ReplicatedStorage.WaitForChild(FileNames.INVENTORY_ITEM_EVENTS) as RemoteEvent;
         this.itemPopUpDescFrame = this.playerInventory.playerInventoryScreen.FindFirstChild(FileNames.ITEM_POP_UP_DESC) as Frame;
     }

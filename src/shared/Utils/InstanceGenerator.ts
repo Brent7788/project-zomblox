@@ -50,7 +50,7 @@ export default class InstanceGenerator {
         return HttpService.GenerateGUID();
     }
 
-    public static generateWayPoint(waypointPosition: Vector3): Part {
+    public static generateWayPoint(waypointPosition: Vector3, time = 1): void {
         const part = new Instance("Part");
         part.Name = "WayPoint";
         part.Shape = Enum.PartType.Ball;
@@ -61,7 +61,7 @@ export default class InstanceGenerator {
         part.Anchored = true;
         part.CanCollide = false;
         part.Parent = Workspace;
-        return part;
+        Debris.AddItem(part, time);
     }
 
     public static debugBeam(distance: Vector3, newCFrame: CFrame): void {

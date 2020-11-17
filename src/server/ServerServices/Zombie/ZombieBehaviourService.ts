@@ -3,7 +3,8 @@ import {FileNames} from "../../../shared/Modules/Enums/FileNames";
 import ZombieService from "./ZombieService";
 import ZombiePath from "../../ServerModules/ZombiePath";
 import ZombieCrossPoint from "../../ServerModules/ZombieCrossPoint";
-import InstanceGenerator from "../../../shared/Utils/InstanceGenerator";
+import U from "../../../shared/Utils/CommonUtil";
+import RegionService from "../../../shared/Service/RegionService";
 
 export default class ZombieBehaviourService {
 
@@ -12,6 +13,7 @@ export default class ZombieBehaviourService {
     private readonly zombies: ZombieService[] = [];
     private zombiesRayCastParams: RaycastParams = new RaycastParams();
     private zombiePaths: ZombiePath[] = [];
+    private buildingRegions: RegionService[] = [];
     private windowTargets: Part[] = [];
     private players: Player[] = [];
 
@@ -34,6 +36,10 @@ export default class ZombieBehaviourService {
 
         const p = Workspace.WaitForChild("TestParts").WaitForChild("WindowTarget") as Part;
         this.windowTargets.push(p);
+
+        const p1 = Workspace.WaitForChild("TestParts").WaitForChild("BuildingRegion") as Part;
+        const b = new RegionService(p1);
+        this.buildingRegions.push(b);
 
         this.initRayCastParamsWhitelistPlayers()
     }
@@ -84,7 +90,7 @@ export default class ZombieBehaviourService {
         const isCharacterLoaded = this.waitForPlayerCharacter(player);
 
         //TODO Maybe the wait can be 2 seconds
-        while (wait(0.1)) {
+        while (wait(1)) {
             //TODO THis is not good, find better way
 
             if (!this.isPlayerFullyInGame(player) || !isCharacterLoaded) {
@@ -102,14 +108,14 @@ export default class ZombieBehaviourService {
 
                         print("Zombie follow", count);
 
+
+
                         const f = this.isPlayerINf(player, zombie);
 
                         if (f) {
                             this.zombieStartChasingPlayer(zombie, player)
                                 .then()
                                 .catch((reason) => warn("Error in zombieDetectPlayer", reason));
-                        } else {
-                            print("No chase");
                         }
                     }
                 }
@@ -120,29 +126,81 @@ export default class ZombieBehaviourService {
     private isPlayerINf(player: Player, zombie: ZombieService): boolean {
         const playerRootPart = player.Character?.FindFirstChild(FileNames.HUMANOID_ROOT_PART) as Part;
         let chase = false;
-        if (playerRootPart !== undefined) {
+        //const t = this.isPlayerInBuilding(playerRootPart);
+       //print("Is player in reg", t);
+        if (U.isNotNull(playerRootPart)) {
            // this.zombiesRayCastParams.FilterDescendantsInstances = [player];
             //playerRootPart.CFrame.LookVector.sub(zombie.position())
             //TODO Note* Mul with 50 is the distance
-            InstanceGenerator.debugBeam2(zombie.position(),
-                playerRootPart.Position.sub(zombie.position()).Unit.mul(new Vector3(50,50,50)));
-            const rayCastTarget = Workspace.Raycast(zombie.position(), playerRootPart.Position.sub(zombie.position()).Unit.mul(new Vector3(50,50,50)), this.zombiesRayCastParams);
-            print(rayCastTarget);
-            if (rayCastTarget !== undefined) {
-                const basePart = rayCastTarget.Instance.Parent;
 
-                if (basePart !== undefined && basePart.IsA("Model")) {
-                    print(basePart.Name);
-                    const humanoid = basePart.FindFirstChild(FileNames.HUMANOID) as Humanoid;
+            const buildingRegion = this.isPlayerInBuilding(playerRootPart);
 
-                    if (humanoid !== undefined) {
-                        //chase = true;
+            U.ifNotNullElse(buildingRegion, (buildingRegion) => {
+
+                const test = buildingRegion.FindPartsInRegion3(100, playerRootPart.Parent);
+                let current = 0;
+                let old = 4000;
+                //TODO Window and Doors
+                let windowTarget: Part | undefined;
+                for (const basePart of test) {
+                    if (basePart.Name === "WindowTarget") {
+                        current = zombie.position().sub(basePart.Position).Magnitude;
+                        print(basePart);
+                        if (current < old) {
+                            old = current;
+                            windowTarget = basePart as Part;
+                        }
                     }
                 }
-            }
+
+                U.ifNotNull(windowTarget, wt => {
+                    zombie.isChasingPlayer = false;
+                    zombie.moveToWayPoints(wt.Position);
+                });
+
+            }, () => {
+                const rayCastTarget = Workspace.Raycast(zombie.position(),
+                    U.mulVector3(playerRootPart.Position.sub(zombie.position()).Unit, 50), this.zombiesRayCastParams);
+
+                U.ifNotNull(rayCastTarget, (rayCastTarget) => {
+                    const instance = rayCastTarget.Instance.Parent as Instance;
+
+                    if (U.isNotNull(instance) && instance.IsA("Model")) {
+                        print(instance.Name);
+                        const humanoid = instance.FindFirstChild(FileNames.HUMANOID) as Humanoid;
+
+                        if (U.isNotNull(humanoid)) {
+                            //TODO zombieStartChasingPlayer method should me in here
+                            chase = true;
+                            zombie.detectedPlayer = false;
+                        }
+                    } else if(!zombie.detectedPlayer) {
+                        //Assume zombie lost track of player
+                        zombie.isChasingPlayer = false;
+                        zombie.detectedPlayer = true;
+                        zombie.moveToWayPointsAsync(playerRootPart.Position, true).then();
+                    }
+                });
+            });
         }
 
         return chase;
+    }
+
+    //TODO This should be in player service
+    private isPlayerInBuilding(playerRootPart: Part | undefined): RegionService | undefined {
+        let buildingReg: RegionService | undefined = undefined;
+
+        U.ifNotNull(playerRootPart, playerRootPart => {
+            for (const buildingRegion of this.buildingRegions) {
+                const regionParts = buildingRegion.FindPartsInRegion3WithWhiteList(1, [playerRootPart]);
+                if (regionParts.size() === 1) {
+                    buildingReg = buildingRegion;
+                }
+            }
+        });
+
+        return buildingReg;
     }
 
     private async zombieStartChasingPlayer(zombie: ZombieService, player: Player): Promise<void> {
@@ -281,7 +339,7 @@ export default class ZombieBehaviourService {
 
         const index = this.zombiePathCross(zombie, waypoints);
 
-        const wayPointsIdentifier = zombie.showZombiePath(waypoints, 1, index);
+        zombie.showZombiePath(waypoints, 1, index);
 
         this.zombiePaths.push(new ZombiePath(zombie.id.Value, waypoints));
 
@@ -304,8 +362,6 @@ export default class ZombieBehaviourService {
                 this.zombiePaths.remove(i);
             }
         }
-
-        zombie.destroyZombiePathIdentifier(wayPointsIdentifier);
     }
 
     private zombiePathCross(zombie: ZombieService, waypoints: PathWaypoint[]): number {

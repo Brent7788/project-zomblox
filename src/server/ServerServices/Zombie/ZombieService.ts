@@ -18,6 +18,9 @@ export default class ZombieService {
     public isChasingPlayer = false;
     public targetUserId = 0;
     public currentDistanceFormPlayer = 0;
+    //TODO Find better property name
+    public detectedPlayer = false;
+    private targetingBuildObject = false;
 
     //Zombie Normal behavior settings
     //TODO I should put this in an object, ZombieBehaviorSetting or something
@@ -84,10 +87,6 @@ export default class ZombieService {
         return this.zombieHumanoidRootPart.Position;
     }
 
-    public moveTo(location: Vector3, part?: BasePart): void {
-        this.zombieHumanoid.MoveTo(location, part);
-    }
-
     public setNetworkOwner(): void {
         for (const zombiePart of this.zombieParts) {
 
@@ -101,8 +100,7 @@ export default class ZombieService {
         }
     }
 
-    public showZombiePath(wayPoints: PathWaypoint[], div = 1, breakBy = -1): Part[] {
-        const createdWayPointsIdentifier: Part[] = [];
+    public showZombiePath(wayPoints: PathWaypoint[], div = 1, breakBy = -1) {
 
         for (let i = 0; i < wayPoints.size(); i++) {
 
@@ -111,21 +109,43 @@ export default class ZombieService {
             }
 
             if (i <= (wayPoints.size() / div)) {
-                createdWayPointsIdentifier.push(InstanceGenerator.generateWayPoint(wayPoints[i].Position));
+                InstanceGenerator.generateWayPoint(wayPoints[i].Position, 8);
             }
-        }
-
-        return createdWayPointsIdentifier;
-    }
-
-    public destroyZombiePathIdentifier(wayPointsIdentifier: Part[]): void {
-        for (const part of wayPointsIdentifier) {
-            part.Destroy();
         }
     }
 
     public pathComputeAsync(toPosition: Vector3): void {
         this.path.ComputeAsync(this.position(), toPosition);
+    }
+
+    public moveTo(location: Vector3, part?: BasePart): void {
+        this.zombieHumanoid.MoveTo(location, part);
+    }
+
+    //TODO ShouldBreak is not a good name
+    public moveToWayPoints(toPosition: Vector3, shouldBreak = false): void {
+        this.pathComputeAsync(toPosition);
+
+        print(this.path.Status);
+        if (this.path.Status === Enum.PathStatus.Success) {
+            const wayPoints = this.path.GetWaypoints();
+
+            this.showZombiePath(wayPoints);
+
+            for (const wayPoint of wayPoints) {
+
+                if (this.targetingBuildObject && shouldBreak) {
+                    break;
+                }
+
+                this.moveTo(wayPoint.Position);
+                this.zombieHumanoid.MoveToFinished.Wait();
+            }
+        }
+    }
+
+    public async moveToWayPointsAsync(toPosition: Vector3, shouldBreak = false): Promise<void> {
+        this.moveToWayPoints(toPosition, shouldBreak);
     }
 
     public isChasingByWhatPlayer(userId: number): boolean {
