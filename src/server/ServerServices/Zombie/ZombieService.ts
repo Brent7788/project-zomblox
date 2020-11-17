@@ -1,6 +1,7 @@
 import {FileNames} from "../../../shared/Modules/Enums/FileNames";
 import InstanceGenerator from "../../../shared/Utils/InstanceGenerator";
 import {PathfindingService} from "@rbxts/services";
+import U from "../../../shared/Utils/CommonUtil";
 
 export default class ZombieService {
 
@@ -20,7 +21,8 @@ export default class ZombieService {
     public currentDistanceFormPlayer = 0;
     //TODO Find better property name
     public detectedPlayer = false;
-    private targetingBuildObject = false;
+    public targetingBuildObject = false;
+    public isInFrontOfPart: BoolValue | undefined;
 
     //Zombie Normal behavior settings
     //TODO I should put this in an object, ZombieBehaviorSetting or something
@@ -100,6 +102,13 @@ export default class ZombieService {
         }
     }
 
+    //TODO This should have better method name
+    public isNotInFrontOfPart(): void {
+        U.ifNotNull(this.isInFrontOfPart, (boolValue) => {
+            boolValue.Value = false;
+        });
+    }
+
     public showZombiePath(wayPoints: PathWaypoint[], div = 1, breakBy = -1) {
 
         for (let i = 0; i < wayPoints.size(); i++) {
@@ -123,13 +132,14 @@ export default class ZombieService {
     }
 
     //TODO ShouldBreak is not a good name
-    public moveToWayPoints(toPosition: Vector3, shouldBreak = false): void {
+    public moveToWayPoints(toPosition: Vector3, shouldBreak = false): boolean {
         this.pathComputeAsync(toPosition);
 
+        let findPath = false;
         print(this.path.Status);
         if (this.path.Status === Enum.PathStatus.Success) {
             const wayPoints = this.path.GetWaypoints();
-
+            findPath = true;
             this.showZombiePath(wayPoints);
 
             for (const wayPoint of wayPoints) {
@@ -142,10 +152,14 @@ export default class ZombieService {
                 this.zombieHumanoid.MoveToFinished.Wait();
             }
         }
+
+        return findPath;
     }
 
-    public async moveToWayPointsAsync(toPosition: Vector3, shouldBreak = false): Promise<void> {
-        this.moveToWayPoints(toPosition, shouldBreak);
+    public async moveToWayPointsAsync(toPosition: Vector3, shouldBreak = false): Promise<boolean> {
+        return new Promise(resolve => {
+            resolve(this.moveToWayPoints(toPosition, shouldBreak));
+        });
     }
 
     public isChasingByWhatPlayer(userId: number): boolean {
