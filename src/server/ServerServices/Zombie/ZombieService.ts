@@ -171,6 +171,36 @@ export default class ZombieService {
         return isChasing;
     }
 
+    //TODO This is not completely done and this needs more testing
+    public attackPlayer(playerHumanoid: Humanoid): void {
+
+        if (playerHumanoid.WalkSpeed > 8.5 && this.currentDistanceFormPlayer < 4.2) {
+            playerHumanoid.JumpPower = 0;
+            playerHumanoid.WalkSpeed = playerHumanoid.WalkSpeed / 1.1;
+        } else if (playerHumanoid.WalkSpeed < 15) {
+            playerHumanoid.WalkSpeed = playerHumanoid.WalkSpeed + 2;
+        }
+
+        if (this.currentDistanceFormPlayer >= 6) {
+            playerHumanoid.JumpPower = 50;
+        }
+
+        //Grab and bite player
+        if (this.currentDistanceFormPlayer <= 1.84) {
+            const rootPart = playerHumanoid.RootPart;
+            if (rootPart !== undefined) {
+                this.moveTo(rootPart.Position);
+                this.zombieHumanoid.MoveToFinished.Wait();
+            }
+            playerHumanoid.TakeDamage(25);
+            playerHumanoid.WalkSpeed = 0;
+            wait(0.7);
+            playerHumanoid.WalkSpeed = 16;
+            playerHumanoid.JumpPower = 50;
+            wait(0.5);
+        }
+    }
+
     //>>Zombie normal behavior functions
     public setRandomMinMaxMovingPosition(): void {
         this.normalXPos = this.random.NextInteger(

@@ -8,6 +8,7 @@ export enum FileNames {
     HUMANOID = "Humanoid",
     PART = "Part",
     HUMANOID_ROOT_PART = "HumanoidRootPart",
+    SYSTEM_OBJECTS = "SystemObjects",
 
     //ReplicatedStorage - Server and Client
     INVENTORY_ITEM_EVENTS = "InventoryItemEvents",
