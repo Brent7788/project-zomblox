@@ -1,0 +1,11 @@
+
+
+
+export enum ZombieAction {
+    NORMAL_BEHAVIOR,
+    CHASING_PLAYER,
+    DETECTED_PLAYER,
+    FACING_WINDOW,
+    FACING_DOOR,
+    NO_ACTION
+}

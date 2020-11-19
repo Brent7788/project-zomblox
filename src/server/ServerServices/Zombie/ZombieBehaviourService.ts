@@ -7,6 +7,7 @@ import U from "../../../shared/Utils/CommonUtil";
 import RegionService from "../../../shared/Service/RegionService";
 import InstanceGenerator from "../../../shared/Utils/InstanceGenerator";
 import PLayerService from "../../../shared/Service/PLayerService";
+import {ZombieAction} from "../../../shared/Modules/Enums/ZombieAction";
 
 export default class ZombieBehaviourService {
 
@@ -65,7 +66,6 @@ export default class ZombieBehaviourService {
 
     public initZombie(): void {
         for (let i = 0; i < this.zombies.size(); i++) {
-            this.zombies[i].isRunningNormalBehaviour = true;
             this.zombieNormalBehaviour(
                 this.zombies[i])
                 .then()
@@ -97,28 +97,32 @@ export default class ZombieBehaviourService {
         while (wait(1)) {
             //TODO THis is not good, find better way1
 
-            if (U.isNull(playerService.character || playerService.humanoid.Health <= 0)) {
+            if (!playerService.isFullyInGame() || playerService.humanoid.Health <= 0) {
                 break;
             }
 
             for (const zombie of this.zombies) {
 
-                if (!zombie.isChasingPlayer || !zombie.isChasingByWhatPlayer(playerService.player.UserId)) {
+                //print("ACTION", zombie.action)
+                if (zombie.isAor(ZombieAction.NORMAL_BEHAVIOR, ZombieAction.NO_ACTION, ZombieAction.FACING_WINDOW) ||
+                    !zombie.isChasingByWhatPlayer(playerService.player.UserId)) {
+
                     const playerDistanceFormZombie = playerService.player.DistanceFromCharacter(zombie.position());
 
-                    print("TE",zombie.isChasingPlayer, zombie.isRunningNormalBehaviour, zombie.detectedPlayer);
-                    if ((!zombie.isChasingPlayer && playerDistanceFormZombie <= detectionRange) ||
-                        (zombie.isChasingPlayer && playerDistanceFormZombie < zombie.currentDistanceFormPlayer)) {
+                    if ((zombie.isAor(ZombieAction.NORMAL_BEHAVIOR, ZombieAction.NO_ACTION, ZombieAction.FACING_WINDOW) && playerDistanceFormZombie <= detectionRange) ||
+                        (zombie.isA(ZombieAction.CHASING_PLAYER) && playerDistanceFormZombie < zombie.currentDistanceFormPlayer)) {
 
                         this.zombieMainDetectionBrain(playerService, zombie);
-                    } else if (!zombie.isRunningNormalBehaviour && (!zombie.detectedPlayer || !zombie.targetingBuildObject)) {
-                        playerService.disconnectRunning();
-                        this.zombieNormalBehaviour(zombie, false)
-                            .then()
-                            .catch((reason) => {
-                                warn("Error in zombieNormalBehaviour", reason);
-                            });
                     }
+                }
+
+                if (zombie.isA(ZombieAction.NO_ACTION)) {
+                    playerService.disconnectRunning();
+                    this.zombieNormalBehaviour(zombie, true)
+                        .then()
+                        .catch((reason) => {
+                            warn("Error in zombieNormalBehaviour", reason);
+                        });
                 }
             }
         }
@@ -129,14 +133,13 @@ export default class ZombieBehaviourService {
 
         pLayerService.connectPlayerRunning();
 
-        print("Z", zombie.detectedPlayer, zombie.targetingBuildObject, zombie.isChasingPlayer);
+        // print("Z", zombie.detectedPlayer, zombie.targetingBuildObject, zombie.isChasingPlayer);
         U.ifNotNullElse(buildingRegion, (buildingRegion) => {
 
             if (pLayerService.isRunning) {
                 const test = buildingRegion.FindPartsInRegion3(100, pLayerService.character);
                 let current = 0;
                 let old = 4000;
-                zombie.detectedPlayer = false;
                 //TODO Window and Doors
                 let windowTarget: Part | undefined;
                 for (const basePart of test) {
@@ -151,21 +154,30 @@ export default class ZombieBehaviourService {
 
                 U.ifNotNull(windowTarget, wt => {
                     //TODO IsZombieInFront should be pre-generated
-                    const wv = wt.FindFirstChild("IsZombieInFrontOf") as BoolValue;
-                    if (!zombie.targetingBuildObject &&
-                        (wv === undefined || !wv.Value)) {
-                        zombie.targetingBuildObject = true;
+                    let facingWindow = wt.FindFirstChild("IsZombieInFrontOf") as BoolValue;
+                    if (zombie.isNotA(ZombieAction.FACING_WINDOW) &&
+                        (facingWindow === undefined || !facingWindow.Value)) {
 
-                        let ww = wv;
-                        if (U.isNull(wv)) {
-                            ww = InstanceGenerator.generateBoolValue(wt, true, "IsZombieInFrontOf");
+                        zombie.action = ZombieAction.FACING_WINDOW
+
+                        if (U.isNull(facingWindow)) {
+                            facingWindow = InstanceGenerator.generateBoolValue(wt, true, "IsZombieInFrontOf");
                         } else {
-                            ww.Value = true;
+                            facingWindow.Value = true;
                         }
-                        zombie.isInFrontOfPart = ww;
-                        zombie.moveToWayPointsAsync(wt.Position, true).then((success) => {
-                            zombie.targetingBuildObject = success;
-                            ww.Value = success;
+
+                        zombie.isInFrontOfPart = facingWindow;
+
+                        zombie.moveToWayPointsAsync(wt.Position, zombie.action).then((success) => {
+                            facingWindow.Value = success;
+
+                            if (!success) {
+                                zombie.action = ZombieAction.NO_ACTION;
+                            } else {
+                                print("Go up");
+                                zombie.moveTo(zombie.position().add(new Vector3(0, 20, 0)));
+                                zombie.zombieHumanoid.MoveToFinished.Wait();
+                            }
                         });
                     }
                 });
@@ -174,18 +186,13 @@ export default class ZombieBehaviourService {
             const rayCastTarget = Workspace.Raycast(zombie.position(),
                 U.mulVector3(pLayerService.position().sub(zombie.position()).Unit, 50), this.zombiesRayCastParams);
 
-            zombie.targetingBuildObject = false;
-
             U.ifNotNull(rayCastTarget, (rayCastTarget) => {
                 const instance = rayCastTarget.Instance.Parent as Instance;
 
-                print(instance, instance.IsA("Model"));
                 if (U.isNotNull(instance) && instance.IsA("Model")) {
                     const humanoid = instance.FindFirstChild(FileNames.HUMANOID) as Humanoid;
 
                     if (U.isNotNull(humanoid)) {
-                        //TODO zombieStartChasingPlayer method should me in here
-                        zombie.detectedPlayer = false;
                         zombie.isNotInFrontOfPart();
                         pLayerService.disconnectRunning();
 
@@ -193,13 +200,18 @@ export default class ZombieBehaviourService {
                             .then()
                             .catch((reason) => warn("Error in zombieStartChasingPlayer", reason));
                     }
-                } else if (!zombie.detectedPlayer && pLayerService.isRunning) {
-                    zombie.detectedPlayer = true;
-                    zombie.isRunningNormalBehaviour = false;
+                } else if (zombie.isNotA(ZombieAction.DETECTED_PLAYER) &&
+                    zombie.isNotA(ZombieAction.CHASING_PLAYER) && pLayerService.isRunning) {
+
+                    const xOffset = zombie.random.NextNumber(-20, 20);
+                    const zOffset = zombie.random.NextNumber(-20, 20);
+                    const playerOffsetPosition = pLayerService.position().add(new Vector3(xOffset, 0, zOffset));
+
+                    zombie.action = ZombieAction.DETECTED_PLAYER
                     zombie.isNotInFrontOfPart();
-                    zombie.moveToWayPointsAsync(pLayerService.position())
+                    zombie.moveToWayPointsAsync(playerOffsetPosition, zombie.action)
                         .then((success) => {
-                            zombie.detectedPlayer = false;
+                            zombie.action = ZombieAction.NO_ACTION;
                         });
                 }
             });
@@ -208,13 +220,9 @@ export default class ZombieBehaviourService {
 
     private async zombieStartChasingPlayer(zombie: ZombieService, playerService: PLayerService): Promise<void> {
 
+        zombie.action = ZombieAction.CHASING_PLAYER;
         let isNotBlocked = true;
         const userId = playerService.player.UserId;
-        zombie.isChasingPlayer = true;
-        zombie.isRunningNormalBehaviour = false;
-        zombie.detectedPlayer = false;
-        zombie.targetingBuildObject = false;
-        zombie.isNotInFrontOfPart();
         zombie.targetUserId = userId;
 
         //TODO All this connection should be in the ZombieService, see player running for example
@@ -281,7 +289,7 @@ export default class ZombieBehaviourService {
 
                         for (let i = 0; i < waypoints.size(); i++) {
 
-                            if (isNotBlocked) {
+                            if (isNotBlocked && !zombie.isChasingByWhatPlayer(userId)) {
                                 break;
                             }
 
@@ -294,7 +302,6 @@ export default class ZombieBehaviourService {
                         }
                     }
                 } else {
-                    zombie.isChasingPlayer = false;
                     this.zombieNormalBehaviour(zombie, true)
                         .then()
                         .catch((reason) => warn("Error in zombieNormalBehaviour", reason));
@@ -308,14 +315,15 @@ export default class ZombieBehaviourService {
                 isNotBlocked = true;
             }
 
+            if (!zombie.isChasingByWhatPlayer(userId)) {
+                break;
+            }
+
             //TODO Make zombie range random settings
             if (zombieDistinctBetweenPlayer > 60 ||
-                !zombie.isChasingByWhatPlayer(userId) ||
                 !playerService.isFullyInGame() ||
                 playerService.humanoid.Health <= 0) {
 
-                zombie.isChasingPlayer = !zombie.isChasingByWhatPlayer(userId);
-                print("S", zombie.isChasingPlayer);
                 this.zombieNormalBehaviour(zombie, false)
                     .then()
                     .catch((reason) => warn("Error in zombieNormalBehaviour", reason));
@@ -331,14 +339,11 @@ export default class ZombieBehaviourService {
     //TODO There Should be zombie behaviour outside and indoors
     private async zombieNormalBehaviour(zombie: ZombieService, firstTimeRun = true): Promise<void> {
 
-        zombie.detectedPlayer = false;
-        zombie.targetingBuildObject = false;
-        zombie.isRunningNormalBehaviour = true;
+        zombie.action = ZombieAction.NORMAL_BEHAVIOR;
 
         //TODO Stop while loop when player is completely out of view or range
         while (wait(0.1)) {
-            if (zombie.isChasingPlayer) {
-                zombie.isRunningNormalBehaviour = false;
+            if (zombie.isNotA(ZombieAction.NORMAL_BEHAVIOR)) {
                 break;
             }
             //TODO Zombie behaviour is to random
@@ -358,7 +363,7 @@ export default class ZombieBehaviourService {
                 this.zombieMoveTo(zombie, zombie.path.GetWaypoints());
                 //TODO Make more active in day and less active in ninth
                 //     The zombies still looks to active
-                //zombie.powerNap();
+                zombie.powerNap();
             }
         }
     }
@@ -376,9 +381,7 @@ export default class ZombieBehaviourService {
         //zombie.testRun.Play()
         for (let i = 0; i < waypoints.size(); i++) {
 
-            if (i === index || zombie.isChasingPlayer ||
-                zombie.targetingBuildObject ||
-                zombie.detectedPlayer) {
+            if (i === index || zombie.isNotA(ZombieAction.NORMAL_BEHAVIOR)) {
                 break;
             }
 

@@ -2,6 +2,7 @@ import {FileNames} from "../../../shared/Modules/Enums/FileNames";
 import InstanceGenerator from "../../../shared/Utils/InstanceGenerator";
 import {PathfindingService} from "@rbxts/services";
 import U from "../../../shared/Utils/CommonUtil";
+import {ZombieAction} from "../../../shared/Modules/Enums/ZombieAction";
 
 export default class ZombieService {
 
@@ -15,13 +16,8 @@ export default class ZombieService {
     public grabAnimation: AnimationTrack;
 
     //Target(Player)
-    public isChasingPlayer = false;
     public targetUserId = 0;
     public currentDistanceFormPlayer = 0;
-    //TODO Find better property name
-    //     These two fields is casing sidefectes
-    public detectedPlayer = false;
-    public targetingBuildObject = false;
     public isInFrontOfPart: BoolValue | undefined;
 
     //Zombie Normal behavior settings
@@ -31,11 +27,12 @@ export default class ZombieService {
     public zombieSleep = 0;
     public readonly minZombieSleep: number;
     public readonly maxZombieSleep: number;
-    public isRunningNormalBehaviour = false;
     //Zombie activity range, on normal behavior
     //TODO Some zombie must be able to move further then others.
     //     Maybe make this random
     public readonly minMaxMovePosition = 47;
+
+    public action = ZombieAction.NORMAL_BEHAVIOR;
 
     constructor(zombieModel: Model) {
         this.id = InstanceGenerator.generateStringValue(
@@ -128,6 +125,28 @@ export default class ZombieService {
         }
     }
 
+    //Is wait action
+    public isA(action: ZombieAction): boolean {
+        return this.action === action;
+    }
+
+    //Is one of the action in array
+    public isAor(...actions: ZombieAction[]): boolean {
+
+        for (const action of actions) {
+            if (this.action === action) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    //Is not action
+    public isNotA(action: ZombieAction): boolean {
+        return this.action !== action;
+    }
+
     public pathComputeAsync(toPosition: Vector3): void {
         this.path.ComputeAsync(this.position(), toPosition);
     }
@@ -137,22 +156,27 @@ export default class ZombieService {
     }
 
     //TODO ShouldBreak is not a good name
-    public moveToWayPoints(toPosition: Vector3, isPlayerInRegion = false): boolean {
+    public moveToWayPoints(toPosition: Vector3, currentAction: ZombieAction): boolean {
         this.pathComputeAsync(toPosition);
 
-        let findPath = false;
+        let success = false;
+
         print(this.path.Status, toPosition);
+
+        const connected = this.zombieHumanoid.MoveToFinished.Connect(reached => {
+            success = reached;
+        });
+
         if (this.path.Status === Enum.PathStatus.Success) {
             const wayPoints = this.path.GetWaypoints();
-            findPath = true;
+
+
             this.showZombiePath(wayPoints);
 
             for (const wayPoint of wayPoints) {
 
-                if ((!this.targetingBuildObject && !this.detectedPlayer) ||
-                    (!this.targetingBuildObject && isPlayerInRegion) ||
-                    (!this.detectedPlayer && !isPlayerInRegion) ||
-                    this.isChasingPlayer) {
+                if (this.isNotA(currentAction)) {
+                    success = false;
                     break;
                 }
 
@@ -161,25 +185,27 @@ export default class ZombieService {
             }
         }
 
-        if (this.path.Status === Enum.PathStatus.NoPath && this.detectedPlayer) {
+        if (this.path.Status === Enum.PathStatus.NoPath) {
             const x = this.random.NextInteger(2, 6);
             const z = this.random.NextInteger(2, 6);
             this.moveTo(new Vector3(x, toPosition.Y, z));
         }
 
-        return findPath;
+        connected.Disconnect();
+
+        return success;
     }
 
-    public async moveToWayPointsAsync(toPosition: Vector3, isPlayerInRegion = false): Promise<boolean> {
+    public async moveToWayPointsAsync(toPosition: Vector3, currentAction: ZombieAction): Promise<boolean> {
         return new Promise(resolve => {
-            resolve(this.moveToWayPoints(toPosition, isPlayerInRegion));
+            resolve(this.moveToWayPoints(toPosition, currentAction));
         });
     }
 
     public isChasingByWhatPlayer(userId: number): boolean {
         let isChasing = false;
 
-        if (this.targetUserId !== undefined && this.isChasingPlayer && this.targetUserId === userId) {
+        if (U.isNotNull(this.targetUserId) && this.isA(ZombieAction.CHASING_PLAYER) && this.targetUserId === userId) {
             isChasing = true;
         }
         return isChasing;
@@ -189,13 +215,15 @@ export default class ZombieService {
     public attackPlayer(playerHumanoid: Humanoid): void {
 
         if (playerHumanoid.WalkSpeed > 8.5 && this.currentDistanceFormPlayer < 4.2) {
-            playerHumanoid.JumpPower = 0;
             playerHumanoid.WalkSpeed = playerHumanoid.WalkSpeed / 1.1;
         } else if (playerHumanoid.WalkSpeed < 15) {
             playerHumanoid.WalkSpeed = playerHumanoid.WalkSpeed + 2;
         }
 
-        if (this.currentDistanceFormPlayer >= 6) {
+        //TODO Put this,if chased by zombie disable jump
+        if (this.currentDistanceFormPlayer < 13) {
+            playerHumanoid.JumpPower = 0;
+        } else if (this.currentDistanceFormPlayer >= 13) {
             playerHumanoid.JumpPower = 50;
         }
 
