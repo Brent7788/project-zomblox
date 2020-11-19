@@ -16,6 +16,7 @@ export default class ZombieBehaviourService {
     private zombiesRayCastParams: RaycastParams = new RaycastParams();
     private zombiePaths: ZombiePath[] = [];
     private buildingRegions: RegionService[] = [];
+    //TODO Should be PlayerService
     private players: Player[] = [];
 
     constructor() {
@@ -64,26 +65,23 @@ export default class ZombieBehaviourService {
 
     public initZombie(): void {
         for (let i = 0; i < this.zombies.size(); i++) {
+            this.zombies[i].isRunningNormalBehaviour = true;
             this.zombieNormalBehaviour(
                 this.zombies[i])
                 .then()
                 .catch((reason) => {
-                    warn("Error in iniZombie", reason);
+                    warn("Error in zombieNormalBehaviour", reason);
                 });
         }
     }
 
     public initZombieDetectionBehaviour(player: Player): void {
         this.players.push(player);
-        /*this.zombieDetectPlayer(player)
-            .then()
-            .catch((reason) => {
-                warn("Error in iniZombie", reason);
-            });*/
+
         this.zombieDetectPlayer(new PLayerService(player))
             .then()
             .catch((reason) => {
-                warn("Error in iniZombie", reason);
+                warn("Error in zombieDetectPlayer", reason);
             });
     }
 
@@ -94,18 +92,12 @@ export default class ZombieBehaviourService {
     private async zombieDetectPlayer(playerService: PLayerService): Promise<void> {
         //TODO Make zombie range random settings
         const detectionRange = 40;
-        //const isCharacterLoaded = this.waitForPlayerCharacter(player);
 
         //TODO Maybe the wait can be 2 seconds
         while (wait(1)) {
             //TODO THis is not good, find better way1
 
-            if (U.isNull(playerService.character)) {
-                break;
-            }
-
-            if (playerService.humanoid.Health <= 0) {
-                print("Break Ater");
+            if (U.isNull(playerService.character || playerService.humanoid.Health <= 0)) {
                 break;
             }
 
@@ -114,10 +106,18 @@ export default class ZombieBehaviourService {
                 if (!zombie.isChasingPlayer || !zombie.isChasingByWhatPlayer(playerService.player.UserId)) {
                     const playerDistanceFormZombie = playerService.player.DistanceFromCharacter(zombie.position());
 
+                    print("TE",zombie.isChasingPlayer, zombie.isRunningNormalBehaviour, zombie.detectedPlayer);
                     if ((!zombie.isChasingPlayer && playerDistanceFormZombie <= detectionRange) ||
                         (zombie.isChasingPlayer && playerDistanceFormZombie < zombie.currentDistanceFormPlayer)) {
 
                         this.zombieMainDetectionBrain(playerService, zombie);
+                    } else if (!zombie.isRunningNormalBehaviour && (!zombie.detectedPlayer || !zombie.targetingBuildObject)) {
+                        playerService.disconnectRunning();
+                        this.zombieNormalBehaviour(zombie, false)
+                            .then()
+                            .catch((reason) => {
+                                warn("Error in zombieNormalBehaviour", reason);
+                            });
                     }
                 }
             }
@@ -127,51 +127,59 @@ export default class ZombieBehaviourService {
     private zombieMainDetectionBrain(pLayerService: PLayerService, zombie: ZombieService): void {
         const buildingRegion = pLayerService.inWaitRegion();
 
+        pLayerService.connectPlayerRunning();
+
+        print("Z", zombie.detectedPlayer, zombie.targetingBuildObject, zombie.isChasingPlayer);
         U.ifNotNullElse(buildingRegion, (buildingRegion) => {
 
-            const test = buildingRegion.FindPartsInRegion3(100, pLayerService.character);
-            let current = 0;
-            let old = 4000;
-            //TODO Window and Doors
-            let windowTarget: Part | undefined;
-            for (const basePart of test) {
-                if (basePart.Name === "WindowTarget") {
-                    current = zombie.position().sub(basePart.Position).Magnitude;
-                    if (current < old) {
-                        old = current;
-                        windowTarget = basePart as Part;
+            if (pLayerService.isRunning) {
+                const test = buildingRegion.FindPartsInRegion3(100, pLayerService.character);
+                let current = 0;
+                let old = 4000;
+                zombie.detectedPlayer = false;
+                //TODO Window and Doors
+                let windowTarget: Part | undefined;
+                for (const basePart of test) {
+                    if (basePart.Name === "WindowTarget") {
+                        current = zombie.position().sub(basePart.Position).Magnitude;
+                        if (current < old) {
+                            old = current;
+                            windowTarget = basePart as Part;
+                        }
                     }
                 }
+
+                U.ifNotNull(windowTarget, wt => {
+                    //TODO IsZombieInFront should be pre-generated
+                    const wv = wt.FindFirstChild("IsZombieInFrontOf") as BoolValue;
+                    if (!zombie.targetingBuildObject &&
+                        (wv === undefined || !wv.Value)) {
+                        zombie.targetingBuildObject = true;
+
+                        let ww = wv;
+                        if (U.isNull(wv)) {
+                            ww = InstanceGenerator.generateBoolValue(wt, true, "IsZombieInFrontOf");
+                        } else {
+                            ww.Value = true;
+                        }
+                        zombie.isInFrontOfPart = ww;
+                        zombie.moveToWayPointsAsync(wt.Position, true).then((success) => {
+                            zombie.targetingBuildObject = success;
+                            ww.Value = success;
+                        });
+                    }
+                });
             }
-
-            U.ifNotNull(windowTarget, wt => {
-                //TODO IsZombieInFront should be pre-generated
-                const wv = wt.FindFirstChild("IsZombieInFrontOf") as BoolValue;
-                if (!zombie.targetingBuildObject &&
-                    (wv === undefined || !wv.Value)) {
-                    zombie.isChasingPlayer = false;
-                    zombie.targetingBuildObject = true;
-                    let ww = wv;
-                    if (U.isNull(wv)) {
-                        ww = InstanceGenerator.generateBoolValue(wt, true, "IsZombieInFrontOf");
-                    } else {
-                        ww.Value = true;
-                    }
-                    zombie.isInFrontOfPart = ww;
-                    zombie.moveToWayPointsAsync(wt.Position).then((success) => {
-                        zombie.targetingBuildObject = success;
-                        ww.Value = success;
-                    });
-                }
-            });
-
         }, () => {
             const rayCastTarget = Workspace.Raycast(zombie.position(),
                 U.mulVector3(pLayerService.position().sub(zombie.position()).Unit, 50), this.zombiesRayCastParams);
 
+            zombie.targetingBuildObject = false;
+
             U.ifNotNull(rayCastTarget, (rayCastTarget) => {
                 const instance = rayCastTarget.Instance.Parent as Instance;
 
+                print(instance, instance.IsA("Model"));
                 if (U.isNotNull(instance) && instance.IsA("Model")) {
                     const humanoid = instance.FindFirstChild(FileNames.HUMANOID) as Humanoid;
 
@@ -179,154 +187,143 @@ export default class ZombieBehaviourService {
                         //TODO zombieStartChasingPlayer method should me in here
                         zombie.detectedPlayer = false;
                         zombie.isNotInFrontOfPart();
+                        pLayerService.disconnectRunning();
 
-                        this.zombieStartChasingPlayer(zombie, pLayerService.player)
+                        this.zombieStartChasingPlayer(zombie, pLayerService)
                             .then()
-                            .catch((reason) => warn("Error in zombieDetectPlayer", reason));
+                            .catch((reason) => warn("Error in zombieStartChasingPlayer", reason));
                     }
-                } else if (!zombie.detectedPlayer) {
-                    //Assume zombie lost track of player
-                    zombie.isChasingPlayer = false;
+                } else if (!zombie.detectedPlayer && pLayerService.isRunning) {
                     zombie.detectedPlayer = true;
+                    zombie.isRunningNormalBehaviour = false;
                     zombie.isNotInFrontOfPart();
-                    zombie.moveToWayPointsAsync(pLayerService.position(), true).then();
+                    zombie.moveToWayPointsAsync(pLayerService.position())
+                        .then((success) => {
+                            zombie.detectedPlayer = false;
+                        });
                 }
             });
         });
     }
 
-    //TODO This should be in player service
-    private isPlayerInBuilding(playerRootPart: Part | undefined): RegionService | undefined {
-        let buildingReg: RegionService | undefined = undefined;
+    private async zombieStartChasingPlayer(zombie: ZombieService, playerService: PLayerService): Promise<void> {
 
-        U.ifNotNull(playerRootPart, playerRootPart => {
-            for (const buildingRegion of this.buildingRegions) {
-                const regionParts = buildingRegion.FindPartsInRegion3WithWhiteList(1, [playerRootPart]);
-                if (regionParts.size() === 1) {
-                    buildingReg = buildingRegion;
+        let isNotBlocked = true;
+        const userId = playerService.player.UserId;
+        zombie.isChasingPlayer = true;
+        zombie.isRunningNormalBehaviour = false;
+        zombie.detectedPlayer = false;
+        zombie.targetingBuildObject = false;
+        zombie.isNotInFrontOfPart();
+        zombie.targetUserId = userId;
+
+        //TODO All this connection should be in the ZombieService, see player running for example
+        const moveToFinishConnection =
+            zombie.zombieHumanoid.MoveToFinished.Connect((reached) => {
+                if (!reached) {
+                    isNotBlocked = true;
+                }
+            });
+
+        //TODO All this connection should be in the ZombieService, see player running for example
+        const blockedBlockConnection = zombie.path.Blocked.Connect(blockedWaypointIdx => {
+            isNotBlocked = true;
+        });
+
+        let zombieDistinctBetweenPlayer = 0;
+        const xOffset = zombie.random.NextNumber(-8, 8);
+        const zOffset = zombie.random.NextNumber(-8, 8);
+        //TODO All this connection should be in the ZombieService, see player running for example
+        const runningConnection = zombie.zombieHumanoid.Running.Connect(speed => {
+
+            if (isNotBlocked && speed <= 3.5) {
+                zombieDistinctBetweenPlayer = zombie.position().sub(playerService.position()).Magnitude;
+                if (zombieDistinctBetweenPlayer > 7) {
+                    isNotBlocked = false;
+                    //To stop zombie moving
+                    zombie.moveTo(zombie.position());
                 }
             }
         });
-        2
-        return buildingReg;
-    }
+        while (wait(0.1)) {
+            zombieDistinctBetweenPlayer = zombie.position().sub(playerService.position()).Magnitude;
+            zombie.currentDistanceFormPlayer = zombieDistinctBetweenPlayer;
 
-    private async zombieStartChasingPlayer(zombie: ZombieService, player: Player): Promise<void> {
+            if (isNotBlocked) {
 
-        const character = player.Character;
-        const playerRootPart = character?.FindFirstChild(FileNames.HUMANOID_ROOT_PART) as Part;
-        const playerHumanoid = character?.FindFirstChild(FileNames.HUMANOID) as Humanoid;
-
-        if (playerRootPart !== undefined) {
-
-            let isNotBlocked = true;
-            zombie.isChasingPlayer = true;
-            zombie.targetUserId = player.UserId;
-
-            const moveToFinishConnection =
-                zombie.zombieHumanoid.MoveToFinished.Connect((reached) => {
-                    if (!reached) {
-                        isNotBlocked = true;
-                    }
-                });
-
-            const blockedBlockConnection = zombie.path.Blocked.Connect(blockedWaypointIdx => {
-                isNotBlocked = true;
-            });
-
-            let zombieDistinctBetweenPlayer = 0;
-            const xOffset = zombie.random.NextNumber(-8, 8);
-            const zOffset = zombie.random.NextNumber(-8, 8);
-            const runningConnection = zombie.zombieHumanoid.Running.Connect(speed => {
-
-                if (isNotBlocked && speed <= 3.5) {
-                    zombieDistinctBetweenPlayer = zombie.position().sub(playerRootPart.Position).Magnitude;
-                    if (zombieDistinctBetweenPlayer > 7) {
-                        isNotBlocked = false;
-                        //To stop zombie moving
-                        zombie.moveTo(zombie.position());
-                    }
-                }
-            });
-            while (wait(0.1)) {
-                zombieDistinctBetweenPlayer = zombie.position().sub(playerRootPart.Position).Magnitude;
-                zombie.currentDistanceFormPlayer = zombieDistinctBetweenPlayer;
-
-                if (isNotBlocked) {
-
-                    //TODO Maybe make the 15 random, so its not that easy to see
-                    if (zombieDistinctBetweenPlayer <= 15) {
-                        zombie.moveTo(playerRootPart.Position);
-                        zombie.attackPlayer(playerHumanoid);
-                    } else {
-                        const playerOffsetPosition = playerRootPart.Position.add(
-                            new Vector3(xOffset, 0, zOffset)
-                        );
-                        zombie.moveTo(playerOffsetPosition);
-                    }
+                //TODO Maybe make the 15 random, so its not that easy to see
+                if (zombieDistinctBetweenPlayer <= 15) {
+                    zombie.moveTo(playerService.position());
+                    zombie.attackPlayer(playerService.humanoid);
                 } else {
+                    const playerOffsetPosition = playerService.position().add(
+                        new Vector3(xOffset, 0, zOffset)
+                    );
+                    zombie.moveTo(playerOffsetPosition);
+                }
+            } else {
 
-                    //TODO Note* That this.isPlayerInBuilding(playerRootPart) mite case LAG
-                    if (this.isPlayerInBuilding(playerRootPart) === undefined) {
-                        const xxOffset = zombie.random.NextNumber(-25, 25);
-                        const zzOffset = zombie.random.NextNumber(-25, 25);
-                        const playerOffsetPosition = playerRootPart.Position.add(
-                            new Vector3(xxOffset, 0, zzOffset)
-                        );
+                //TODO Note* That playerService.inWaitRegion() mite case LAG
+                if (playerService.inWaitRegion() === undefined) {
+                    const xxOffset = zombie.random.NextNumber(-25, 25);
+                    const zzOffset = zombie.random.NextNumber(-25, 25);
+                    const playerOffsetPosition = playerService.position().add(
+                        new Vector3(xxOffset, 0, zzOffset)
+                    );
 
-                        zombie.pathComputeAsync(playerOffsetPosition);
+                    zombie.pathComputeAsync(playerOffsetPosition);
 
-                        if (zombie.path.Status === Enum.PathStatus.Success) {
+                    if (zombie.path.Status === Enum.PathStatus.Success) {
 
-                            const waypoints = zombie.path.GetWaypoints();
+                        const waypoints = zombie.path.GetWaypoints();
 
-                            zombie.showZombiePath(waypoints, 2);
+                        zombie.showZombiePath(waypoints, 2);
 
-                            for (let i = 0; i < waypoints.size(); i++) {
+                        for (let i = 0; i < waypoints.size(); i++) {
 
-                                if (isNotBlocked) {
-                                    break;
-                                }
+                            if (isNotBlocked) {
+                                break;
+                            }
 
-                                if (i <= (waypoints.size() / 2)) {
-                                    zombie.moveTo(waypoints[i].Position);
-                                    zombie.zombieHumanoid.MoveToFinished.Wait();
-                                } else {
-                                    zombie.moveTo(playerRootPart.Position);
-                                }
+                            if (i <= (waypoints.size() / 2)) {
+                                zombie.moveTo(waypoints[i].Position);
+                                zombie.zombieHumanoid.MoveToFinished.Wait();
+                            } else {
+                                zombie.moveTo(playerService.position());
                             }
                         }
-                    } else {
-                        print("Strop");
-                        zombie.isChasingPlayer = false;
-                        this.zombieNormalBehaviour(zombie, true)
-                            .then()
-                            .catch((reason) => warn("Error in zombieChasePlayer", reason));
-                        moveToFinishConnection.Disconnect();
-                        blockedBlockConnection.Disconnect();
-                        runningConnection.Disconnect();
-                        break;
                     }
-
-                    isNotBlocked = true;
-                }
-
-                //TODO Make zombie range random settings
-                if (zombieDistinctBetweenPlayer > 60 ||
-                    !zombie.isChasingByWhatPlayer(player.UserId) ||
-                    !this.isPlayerFullyInGame(player) ||
-                    playerHumanoid.Health <= 0) {
-
-                    zombie.isChasingPlayer = !zombie.isChasingByWhatPlayer(player.UserId);
-                    print("S", zombie.isChasingPlayer);
-                    this.zombieNormalBehaviour(zombie, false)
+                } else {
+                    zombie.isChasingPlayer = false;
+                    this.zombieNormalBehaviour(zombie, true)
                         .then()
-                        .catch((reason) => warn("Error in zombieChasePlayer", reason));
+                        .catch((reason) => warn("Error in zombieNormalBehaviour", reason));
                     moveToFinishConnection.Disconnect();
                     blockedBlockConnection.Disconnect();
                     runningConnection.Disconnect();
+                    playerService.disconnectRunning();
                     break;
                 }
+
+                isNotBlocked = true;
+            }
+
+            //TODO Make zombie range random settings
+            if (zombieDistinctBetweenPlayer > 60 ||
+                !zombie.isChasingByWhatPlayer(userId) ||
+                !playerService.isFullyInGame() ||
+                playerService.humanoid.Health <= 0) {
+
+                zombie.isChasingPlayer = !zombie.isChasingByWhatPlayer(userId);
+                print("S", zombie.isChasingPlayer);
+                this.zombieNormalBehaviour(zombie, false)
+                    .then()
+                    .catch((reason) => warn("Error in zombieNormalBehaviour", reason));
+                moveToFinishConnection.Disconnect();
+                blockedBlockConnection.Disconnect();
+                runningConnection.Disconnect();
+                playerService.disconnectRunning();
+                break;
             }
         }
     }
@@ -334,9 +331,14 @@ export default class ZombieBehaviourService {
     //TODO There Should be zombie behaviour outside and indoors
     private async zombieNormalBehaviour(zombie: ZombieService, firstTimeRun = true): Promise<void> {
 
+        zombie.detectedPlayer = false;
+        zombie.targetingBuildObject = false;
+        zombie.isRunningNormalBehaviour = true;
+
         //TODO Stop while loop when player is completely out of view or range
         while (wait(0.1)) {
             if (zombie.isChasingPlayer) {
+                zombie.isRunningNormalBehaviour = false;
                 break;
             }
             //TODO Zombie behaviour is to random
@@ -356,7 +358,7 @@ export default class ZombieBehaviourService {
                 this.zombieMoveTo(zombie, zombie.path.GetWaypoints());
                 //TODO Make more active in day and less active in ninth
                 //     The zombies still looks to active
-                zombie.powerNap();
+                //zombie.powerNap();
             }
         }
     }
@@ -374,7 +376,9 @@ export default class ZombieBehaviourService {
         //zombie.testRun.Play()
         for (let i = 0; i < waypoints.size(); i++) {
 
-            if (i === index || zombie.isChasingPlayer) {
+            if (i === index || zombie.isChasingPlayer ||
+                zombie.targetingBuildObject ||
+                zombie.detectedPlayer) {
                 break;
             }
 
@@ -494,27 +498,5 @@ export default class ZombieBehaviourService {
         }
 
         return new ZombieCrossPoint();
-    }
-
-    //TODO User PLAYER.CharacterAdded:Wait() this will work better
-    private waitForPlayerCharacter(player: Player): boolean {
-        let isLoaded = false;
-
-        for (let i = 0; i < 100; i++) {
-            if (this.isPlayerFullyInGame(player)) {
-                isLoaded = true;
-                break;
-            }
-            wait(0.1);
-        }
-        if (!isLoaded) {
-            warn("Player character was not loaded after 10 seconds");
-        }
-
-        return isLoaded;
-    }
-
-    private isPlayerFullyInGame(player: Player): boolean {
-        return player.Character !== undefined;
     }
 }

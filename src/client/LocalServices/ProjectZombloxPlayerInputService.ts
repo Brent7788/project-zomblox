@@ -1,5 +1,7 @@
-import {UserInputService} from "@rbxts/services";
+import {Players, UserInputService} from "@rbxts/services";
 import InventoryService from "./InventoryService";
+import {FileNames} from "../../shared/Modules/Enums/FileNames";
+import U from "../../shared/Utils/CommonUtil";
 
 
 export default class ProjectZombloxPlayerInputService {
@@ -15,7 +17,10 @@ export default class ProjectZombloxPlayerInputService {
     public began(): void {
         this.inventoryService.initUIMouseEL();
 
-        //TODO us to overide key press
+        const player = Players.LocalPlayer;
+        const playerHumanoid = player.Character?.FindFirstChild(FileNames.HUMANOID) as Humanoid;
+        let buttonHold = true;
+        //TODO us to override key press
         /*ContextActionService.BindAction(this.OPEN_INVENTORY,
             (actionName, state, inputObject) => {
                 if (actionName === this.OPEN_INVENTORY && state === Enum.UserInputState.Begin) {
@@ -37,7 +42,18 @@ export default class ProjectZombloxPlayerInputService {
                         break;
                     case Enum.KeyCode.Space:
                         break;
-                    case Enum.KeyCode.Q:
+                    case Enum.KeyCode.LeftShift:
+                        buttonHold = true;
+                        if (U.isNotNull(playerHumanoid)) {
+                            //TODO This should be in the player service
+                            playerHumanoid.WalkSpeed = 16;
+                            while (buttonHold) {
+                                wait(0.1);
+                                if (playerHumanoid.WalkSpeed >= 1 && playerHumanoid.WalkSpeed < 26) {
+                                    playerHumanoid.WalkSpeed = playerHumanoid.WalkSpeed + 3;
+                                }
+                            }
+                        }
                         break;
                 }
             }
@@ -55,8 +71,20 @@ export default class ProjectZombloxPlayerInputService {
                             this.inventoryService.onInventoryOpen();
                         }
                         break;
-                    case Enum.KeyCode.Space:
-                        print('Test scpae');
+                    case Enum.KeyCode.LeftShift:
+                        buttonHold = false;
+                        if (U.isNotNull(playerHumanoid)) {
+                            //TODO This should be in the player service
+                            while (!buttonHold) {
+                                wait(0.2);
+                                if (playerHumanoid.WalkSpeed > 16) {
+                                    playerHumanoid.WalkSpeed = playerHumanoid.WalkSpeed - 2;
+                                } else if (playerHumanoid.WalkSpeed <= 16) {
+                                    playerHumanoid.WalkSpeed = 16;
+                                    break;
+                                }
+                            }
+                        }
                         break;
                 }
             }

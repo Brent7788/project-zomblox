@@ -1,6 +1,7 @@
 import {FileNames} from "../Modules/Enums/FileNames";
 import {Workspace} from "@rbxts/services";
 import RegionService from "./RegionService";
+import U from "../Utils/CommonUtil";
 
 export default class PLayerService {
 
@@ -11,6 +12,11 @@ export default class PLayerService {
     //TODO All Region part should be set under SystemObject
     //     Maybe there should be building region
     public regionServices: RegionService[] = [];
+    public isRunning = false;
+    public onRunning: (speed: number) => void = () => {
+    };
+
+    private runningConnection: RBXScriptConnection | undefined;
 
     constructor(player: Player) {
         this.player = player;
@@ -26,6 +32,30 @@ export default class PLayerService {
                 this.regionServices.push(part);
             }
         }
+    }
+
+    public connectPlayerRunning(): void {
+
+        if (U.isNull(this.runningConnection) ||
+            (this.runningConnection !== undefined && !this.runningConnection.Connected)) {
+            this.runningConnection = this.humanoid.Running.Connect(speed => {
+                print('TESTT', speed);
+                this.onRunning(speed);
+                this.checkIfPlayerIsRunning(speed);
+            });
+        }
+    }
+
+    private checkIfPlayerIsRunning(speed: number): void {
+        if (speed > 20) {
+            this.isRunning = true;
+        } else {
+            this.isRunning = false;
+        }
+    }
+
+    public disconnectRunning(): void {
+        this.runningConnection?.Disconnect();
     }
 
     public inWaitRegion(): RegionService | undefined {
@@ -44,5 +74,9 @@ export default class PLayerService {
 
     public position(): Vector3 {
         return this.root.Position;
+    }
+
+    public isFullyInGame(): boolean {
+        return this.player.Character !== undefined;
     }
 }

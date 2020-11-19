@@ -12,14 +12,14 @@ export default class ZombieService {
     public zombieHumanoid: Humanoid;
     public zombieHumanoidRootPart: Part;
     public random: Random;
-    //TODO TheTest animation, take out if not going to use
-    public testRun: AnimationTrack;
+    public grabAnimation: AnimationTrack;
 
     //Target(Player)
     public isChasingPlayer = false;
     public targetUserId = 0;
     public currentDistanceFormPlayer = 0;
     //TODO Find better property name
+    //     These two fields is casing sidefectes
     public detectedPlayer = false;
     public targetingBuildObject = false;
     public isInFrontOfPart: BoolValue | undefined;
@@ -31,6 +31,7 @@ export default class ZombieService {
     public zombieSleep = 0;
     public readonly minZombieSleep: number;
     public readonly maxZombieSleep: number;
+    public isRunningNormalBehaviour = false;
     //Zombie activity range, on normal behavior
     //TODO Some zombie must be able to move further then others.
     //     Maybe make this random
@@ -67,10 +68,14 @@ export default class ZombieService {
         this.minZombieSleep = this.random.NextNumber(13.4, 21.7);
         this.maxZombieSleep = this.random.NextNumber(41.7, 71.7);
 
-        const runn = new Instance("Animation") as Animation;
-        runn.AnimationId = "rbxassetid://507767714";
+        const grap = new Instance("Animation") as Animation;
+        grap.AnimationId = "rbxassetid://507784897";
 
-        this.testRun = this.zombieHumanoid.LoadAnimation(runn);
+        this.grabAnimation = this.zombieHumanoid.LoadAnimation(grap);
+
+        this.path.Blocked.Connect(blockedWaypointIdx => {
+            print("BLOCKD", this.id);
+        });
     }
 
     private setZombieState(): void {
@@ -118,7 +123,7 @@ export default class ZombieService {
             }
 
             if (i <= (wayPoints.size() / div)) {
-                InstanceGenerator.generateWayPoint(wayPoints[i].Position, 8);
+                InstanceGenerator.generateWayPoint(wayPoints[i].Position, 80);
             }
         }
     }
@@ -132,11 +137,11 @@ export default class ZombieService {
     }
 
     //TODO ShouldBreak is not a good name
-    public moveToWayPoints(toPosition: Vector3, shouldBreak = false): boolean {
+    public moveToWayPoints(toPosition: Vector3, isPlayerInRegion = false): boolean {
         this.pathComputeAsync(toPosition);
 
         let findPath = false;
-        print(this.path.Status);
+        print(this.path.Status, toPosition);
         if (this.path.Status === Enum.PathStatus.Success) {
             const wayPoints = this.path.GetWaypoints();
             findPath = true;
@@ -144,7 +149,10 @@ export default class ZombieService {
 
             for (const wayPoint of wayPoints) {
 
-                if (this.targetingBuildObject && shouldBreak) {
+                if ((!this.targetingBuildObject && !this.detectedPlayer) ||
+                    (!this.targetingBuildObject && isPlayerInRegion) ||
+                    (!this.detectedPlayer && !isPlayerInRegion) ||
+                    this.isChasingPlayer) {
                     break;
                 }
 
@@ -153,12 +161,18 @@ export default class ZombieService {
             }
         }
 
+        if (this.path.Status === Enum.PathStatus.NoPath && this.detectedPlayer) {
+            const x = this.random.NextInteger(2, 6);
+            const z = this.random.NextInteger(2, 6);
+            this.moveTo(new Vector3(x, toPosition.Y, z));
+        }
+
         return findPath;
     }
 
-    public async moveToWayPointsAsync(toPosition: Vector3, shouldBreak = false): Promise<boolean> {
+    public async moveToWayPointsAsync(toPosition: Vector3, isPlayerInRegion = false): Promise<boolean> {
         return new Promise(resolve => {
-            resolve(this.moveToWayPoints(toPosition, shouldBreak));
+            resolve(this.moveToWayPoints(toPosition, isPlayerInRegion));
         });
     }
 
@@ -186,15 +200,17 @@ export default class ZombieService {
         }
 
         //Grab and bite player
-        if (this.currentDistanceFormPlayer <= 1.84) {
+        if (this.currentDistanceFormPlayer <= 2) {
+            playerHumanoid.WalkSpeed = 0;
             const rootPart = playerHumanoid.RootPart;
             if (rootPart !== undefined) {
                 this.moveTo(rootPart.Position);
                 this.zombieHumanoid.MoveToFinished.Wait();
             }
-            playerHumanoid.TakeDamage(25);
-            playerHumanoid.WalkSpeed = 0;
+            this.grabAnimation.Play();
             wait(0.7);
+            playerHumanoid.TakeDamage(25);
+            this.grabAnimation.Stop();
             playerHumanoid.WalkSpeed = 16;
             playerHumanoid.JumpPower = 50;
             wait(0.5);
@@ -221,5 +237,6 @@ export default class ZombieService {
     public randomSleepTime(): number {
         return this.random.NextNumber(this.minZombieSleep, this.maxZombieSleep);
     }
+
     //>>End Zombie normal behavior
 }

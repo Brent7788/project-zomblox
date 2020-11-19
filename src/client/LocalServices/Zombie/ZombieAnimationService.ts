@@ -18,7 +18,7 @@ export default class ZombieAnimationService {
         this.running = this.humanoid.LoadAnimation(running);
 
         const test = new Instance("Animation") as Animation;
-        test.AnimationId = "rbxassetid://507784897";
+        test.AnimationId = "rbxassetid://507770453";
 
         this.test = this.humanoid.LoadAnimation(test);
 
@@ -29,9 +29,9 @@ export default class ZombieAnimationService {
     public runningConnection() {
 
         this.humanoid?.Running.Connect(speed => {
-            if (!this.running.IsPlaying && speed > 0) {
+            if (!this.running.IsPlaying && speed > 0.5) {
                 this.running.Play();
-            } else if (this.running.IsPlaying  && speed === 0) {
+            } else if (this.running.IsPlaying  && speed < 0.5) {
                 this.running.Stop();
             }
         });
