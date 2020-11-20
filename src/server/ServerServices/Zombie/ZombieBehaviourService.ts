@@ -110,7 +110,7 @@ export default class ZombieBehaviourService {
                     const playerDistanceFormZombie = playerService.player.DistanceFromCharacter(zombie.position());
 
                     if ((zombie.isAor(ZombieAction.NORMAL_BEHAVIOR, ZombieAction.NO_ACTION, ZombieAction.FACING_WINDOW) && playerDistanceFormZombie <= detectionRange) ||
-                        (zombie.isA(ZombieAction.CHASING_PLAYER) && playerDistanceFormZombie < zombie.currentDistanceFormPlayer)) {
+                        (zombie.isA(ZombieAction.CHASING_PLAYER_OUT_SIDE) && playerDistanceFormZombie < zombie.currentDistanceFormPlayer)) {
 
                         this.zombieMainDetectionBrain(playerService, zombie);
                     }
@@ -152,70 +152,61 @@ export default class ZombieBehaviourService {
                     }
                 }
 
-                U.ifNotNull(windowTarget, wt => {
+                U.ifNotNull(windowTarget, window => {
                     //TODO IsZombieInFront should be pre-generated
-                    let facingWindow = wt.FindFirstChild("IsZombieInFrontOf") as BoolValue;
+                    let facingWindow = window.FindFirstChild("IsZombieInFrontOf") as BoolValue;
                     if (zombie.isNotA(ZombieAction.FACING_WINDOW) &&
                         (facingWindow === undefined || !facingWindow.Value)) {
 
                         zombie.action = ZombieAction.FACING_WINDOW
 
                         if (U.isNull(facingWindow)) {
-                            facingWindow = InstanceGenerator.generateBoolValue(wt, true, "IsZombieInFrontOf");
+                            facingWindow = InstanceGenerator.generateBoolValue(window, true, "IsZombieInFrontOf");
                         } else {
                             facingWindow.Value = true;
                         }
 
                         zombie.isInFrontOfPart = facingWindow;
 
-                        zombie.moveToWayPointsAsync(wt.Position, zombie.action).then((success) => {
+                        zombie.moveToWayPointsAsync(window.Position, zombie.action).then((success) => {
                             facingWindow.Value = success;
 
                             if (!success) {
                                 zombie.action = ZombieAction.NO_ACTION;
                             } else {
 
-                                const rr = CFrame.Angles(0, 0, math.rad(-90));
-                                const ll = wt.Clone();
-                                ll.Parent = wt;
-                                ll.CFrame = wt.CFrame.ToWorldSpace(rr);
-                                ll.CFrame = ll.CFrame.ToWorldSpace(new CFrame(new Vector3(-5, -5, 0)));
+                                const windowZombieToLook = window.Clone();
+                                windowZombieToLook.Parent = window;
+                                windowZombieToLook.CFrame = window.CFrame.ToWorldSpace(CFrame.Angles(0, 0, math.rad(-90)));
+                                windowZombieToLook.CFrame = windowZombieToLook.CFrame.ToWorldSpace(new CFrame(new Vector3(-5, -6, 0)));
 
-                                print(math.deg(wt.CFrame.ToAxisAngle()[1]));
-                                print(math.deg(zombie.zombieHumanoidRootPart.CFrame.ToAxisAngle()[1]));
-
-                                if (U.isNotNull(ll)) {
-                                    const t = TweenService.Create(
-                                        zombie.zombieHumanoidRootPart,
-                                        new TweenInfo(1),
-                                        //{CFrame: new CFrame(zombie.position(), wt.CFrame.VectorToWorldSpace(wt.CFrame.LookVector))}
-                                        {CFrame: new CFrame(zombie.position(), ll.Position)}
-                                    );
-                                    /*t.Play();
-                                    wait(1);
-                                    zombie.windowClimeAnimation.Play();
-                                    wait(8);
-                                    zombie.windowClimeAnimation.Stop();*/
-                                }
-
-                                //const rr = CFrame.Angles(0, math.rad(90), 0);
-                                /*const t = TweenService.Create(
+                                ////TODO This should only be created one's
+                                const tweenToLookAtWindow = TweenService.Create(
                                     zombie.zombieHumanoidRootPart,
-                                    new TweenInfo(3),
-                                    //{CFrame: new CFrame(zombie.position(), wt.CFrame.VectorToWorldSpace(wt.CFrame.LookVector))}
-                                    {CFrame: new CFrame(zombie.position(), wt.Position)}
-                                );*/
-                                /*const t = TweenService.Create(
-                                    wt,
-                                    new TweenInfo(3),
-                                    //{CFrame: new CFrame(zombie.position(), wt.CFrame.VectorToWorldSpace(wt.CFrame.LookVector))}
-                                    {CFrame: wt.CFrame.ToWorldSpace(rr)}
-                                );*/
-                                //t.Play();
-                                /*wait(3);
+                                    new TweenInfo(0.3),
+                                    {CFrame: new CFrame(zombie.position(), windowZombieToLook.Position)}
+                                );
+                                const tweenToMoveThrowWindow = TweenService.Create(
+                                    zombie.zombieHumanoidRootPart,
+                                    new TweenInfo(
+                                        4.3,
+                                        Enum.EasingStyle.Linear,
+                                        Enum.EasingDirection.InOut),
+                                    {Position: new Vector3(
+                                            windowZombieToLook.Position.X,
+                                            zombie.position().Y,
+                                            windowZombieToLook.Position.Z
+                                        )}
+                                );
+                                tweenToLookAtWindow.Play();
                                 zombie.windowClimeAnimation.Play();
-                                wait(8);
-                                zombie.windowClimeAnimation.Stop();*/
+                                tweenToMoveThrowWindow.Play();
+                                wait(4);
+
+                                zombie.windowClimeAnimation.Stop();
+                                //TODO Check if zombie is in doors
+                                zombie.action = ZombieAction.NORMAL_BEHAVIOR_IN_DOORS;
+                                tweenToLookAtWindow.Destroy();
                             }
                         });
                     }
@@ -240,7 +231,7 @@ export default class ZombieBehaviourService {
                             .catch((reason) => warn("Error in zombieStartChasingPlayer", reason));
                     }
                 } else if (zombie.isNotA(ZombieAction.DETECTED_PLAYER) &&
-                    zombie.isNotA(ZombieAction.CHASING_PLAYER) && pLayerService.isRunning) {
+                    zombie.isNotA(ZombieAction.CHASING_PLAYER_OUT_SIDE) && pLayerService.isRunning) {
 
                     const xOffset = zombie.random.NextNumber(-20, 20);
                     const zOffset = zombie.random.NextNumber(-20, 20);
@@ -259,7 +250,7 @@ export default class ZombieBehaviourService {
 
     private async zombieStartChasingPlayer(zombie: ZombieService, playerService: PLayerService): Promise<void> {
 
-        zombie.action = ZombieAction.CHASING_PLAYER;
+        zombie.action = ZombieAction.CHASING_PLAYER_OUT_SIDE;
         let isNotBlocked = true;
         const userId = playerService.player.UserId;
         zombie.targetUserId = userId;
@@ -310,7 +301,9 @@ export default class ZombieBehaviourService {
                 }
             } else {
 
-                //TODO Note* That playerService.inWaitRegion() mite case LAG
+                //TODO Note* That playerService.inWaitRegion() mite case LAG.
+                //           Use path NoPath states to assume that the zombie is block, and
+                //           that the player is in region.
                 if (playerService.inWaitRegion() === undefined) {
                     const xxOffset = zombie.random.NextNumber(-25, 25);
                     const zzOffset = zombie.random.NextNumber(-25, 25);

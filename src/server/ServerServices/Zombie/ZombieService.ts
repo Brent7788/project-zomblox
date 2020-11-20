@@ -73,7 +73,7 @@ export default class ZombieService {
         this.grabAnimation = this.zombieHumanoid.LoadAnimation(grap);
 
         const window = new Instance("Animation") as Animation;
-        window.AnimationId = "rbxassetid://5977944011";
+        window.AnimationId = "rbxassetid://5979774806";
 
         this.windowClimeAnimation = this.zombieHumanoid.LoadAnimation(window);
 
@@ -212,7 +212,7 @@ export default class ZombieService {
     public isChasingByWhatPlayer(userId: number): boolean {
         let isChasing = false;
 
-        if (U.isNotNull(this.targetUserId) && this.isA(ZombieAction.CHASING_PLAYER) && this.targetUserId === userId) {
+        if (U.isNotNull(this.targetUserId) && this.isA(ZombieAction.CHASING_PLAYER_OUT_SIDE) && this.targetUserId === userId) {
             isChasing = true;
         }
         return isChasing;
