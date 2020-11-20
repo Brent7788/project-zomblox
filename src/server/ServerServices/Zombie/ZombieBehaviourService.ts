@@ -1,4 +1,4 @@
-import {Players, Workspace} from "@rbxts/services";
+import {Players, TweenService, Workspace} from "@rbxts/services";
 import {FileNames} from "../../../shared/Modules/Enums/FileNames";
 import ZombieService from "./ZombieService";
 import ZombiePath from "../../ServerModules/ZombiePath";
@@ -174,9 +174,48 @@ export default class ZombieBehaviourService {
                             if (!success) {
                                 zombie.action = ZombieAction.NO_ACTION;
                             } else {
-                                print("Go up");
-                                zombie.moveTo(zombie.position().add(new Vector3(0, 20, 0)));
-                                zombie.zombieHumanoid.MoveToFinished.Wait();
+
+                                const rr = CFrame.Angles(0, 0, math.rad(-90));
+                                const ll = wt.Clone();
+                                ll.Parent = wt;
+                                ll.CFrame = wt.CFrame.ToWorldSpace(rr);
+                                ll.CFrame = ll.CFrame.ToWorldSpace(new CFrame(new Vector3(-5, -5, 0)));
+
+                                print(math.deg(wt.CFrame.ToAxisAngle()[1]));
+                                print(math.deg(zombie.zombieHumanoidRootPart.CFrame.ToAxisAngle()[1]));
+
+                                if (U.isNotNull(ll)) {
+                                    const t = TweenService.Create(
+                                        zombie.zombieHumanoidRootPart,
+                                        new TweenInfo(1),
+                                        //{CFrame: new CFrame(zombie.position(), wt.CFrame.VectorToWorldSpace(wt.CFrame.LookVector))}
+                                        {CFrame: new CFrame(zombie.position(), ll.Position)}
+                                    );
+                                    /*t.Play();
+                                    wait(1);
+                                    zombie.windowClimeAnimation.Play();
+                                    wait(8);
+                                    zombie.windowClimeAnimation.Stop();*/
+                                }
+
+                                //const rr = CFrame.Angles(0, math.rad(90), 0);
+                                /*const t = TweenService.Create(
+                                    zombie.zombieHumanoidRootPart,
+                                    new TweenInfo(3),
+                                    //{CFrame: new CFrame(zombie.position(), wt.CFrame.VectorToWorldSpace(wt.CFrame.LookVector))}
+                                    {CFrame: new CFrame(zombie.position(), wt.Position)}
+                                );*/
+                                /*const t = TweenService.Create(
+                                    wt,
+                                    new TweenInfo(3),
+                                    //{CFrame: new CFrame(zombie.position(), wt.CFrame.VectorToWorldSpace(wt.CFrame.LookVector))}
+                                    {CFrame: wt.CFrame.ToWorldSpace(rr)}
+                                );*/
+                                //t.Play();
+                                /*wait(3);
+                                zombie.windowClimeAnimation.Play();
+                                wait(8);
+                                zombie.windowClimeAnimation.Stop();*/
                             }
                         });
                     }

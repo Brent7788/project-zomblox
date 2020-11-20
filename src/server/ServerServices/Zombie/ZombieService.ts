@@ -14,6 +14,7 @@ export default class ZombieService {
     public zombieHumanoidRootPart: Part;
     public random: Random;
     public grabAnimation: AnimationTrack;
+    public windowClimeAnimation: AnimationTrack;
 
     //Target(Player)
     public targetUserId = 0;
@@ -65,10 +66,16 @@ export default class ZombieService {
         this.minZombieSleep = this.random.NextNumber(13.4, 21.7);
         this.maxZombieSleep = this.random.NextNumber(41.7, 71.7);
 
+        //TODO The animation should be in private method
         const grap = new Instance("Animation") as Animation;
         grap.AnimationId = "rbxassetid://507784897";
 
         this.grabAnimation = this.zombieHumanoid.LoadAnimation(grap);
+
+        const window = new Instance("Animation") as Animation;
+        window.AnimationId = "rbxassetid://5977944011";
+
+        this.windowClimeAnimation = this.zombieHumanoid.LoadAnimation(window);
 
         this.path.Blocked.Connect(blockedWaypointIdx => {
             print("BLOCKD", this.id);
@@ -221,11 +228,11 @@ export default class ZombieService {
         }
 
         //TODO Put this,if chased by zombie disable jump
-        if (this.currentDistanceFormPlayer < 13) {
+        /*if (this.currentDistanceFormPlayer < 13) {
             playerHumanoid.JumpPower = 0;
         } else if (this.currentDistanceFormPlayer >= 13) {
             playerHumanoid.JumpPower = 50;
-        }
+        }*/
 
         //Grab and bite player
         if (this.currentDistanceFormPlayer <= 2) {
